@@ -993,6 +993,20 @@ app.get('/oauth2callback', async (req, res) => {
   }
 });
 
+// Get home directory
+app.get('/api/get-home-dir', (req, res) => {
+  try {
+    const homeDir = os.homedir();
+    res.json({
+      success: true,
+      homeDir: homeDir
+    });
+  } catch (error) {
+    console.error('Error getting home directory:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Save Claude Code Config
 app.post('/api/save-claude-code-config', (req, res) => {
   try {

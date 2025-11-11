@@ -3638,18 +3638,16 @@
         return;
       }
 
-      // Get Code servers from projects
-      const projects = codeConfigData.projects || {};
-      const homeDir = Object.keys(projects).find(key =>
-        key.match(/^\/Users\/[^\/]+$/) ||
-        key.match(/^\/home\/[^\/]+$/) ||
-        key.match(/^[A-Z]:\\Users\\[^\\]+$/)
-      );
+      // Get home directory from API
+      const homeDirResponse = await fetch('/api/get-home-dir');
+      const homeDirResult = await homeDirResponse.json();
 
-      if (!homeDir) {
-        showError('홈 디렉토리를 찾을 수 없습니다');
+      if (!homeDirResult.success) {
+        showError('홈 디렉토리를 가져올 수 없습니다: ' + homeDirResult.error);
         return;
       }
+
+      const homeDir = homeDirResult.homeDir;
 
       // Initialize mcpServers if needed
       if (!codeConfigData.projects[homeDir]) {
@@ -3789,18 +3787,16 @@
       }
 
       try {
-        // Find the user directory key in projects object
-        const projects = codeConfigData.projects || {};
-        const homeDir = Object.keys(projects).find(key =>
-          key.match(/^\/Users\/[^\/]+$/) ||
-          key.match(/^\/home\/[^\/]+$/) ||
-          key.match(/^[A-Z]:\\Users\\[^\\]+$/)
-        );
+        // Get home directory from API
+        const homeDirResponse = await fetch('/api/get-home-dir');
+        const homeDirResult = await homeDirResponse.json();
 
-        if (!homeDir) {
-          showError('홈 디렉토리를 찾을 수 없습니다');
+        if (!homeDirResult.success) {
+          showError('홈 디렉토리를 가져올 수 없습니다: ' + homeDirResult.error);
           return;
         }
+
+        const homeDir = homeDirResult.homeDir;
 
         // Merge servers
         if (!codeConfigData.projects[homeDir]) {
@@ -4135,18 +4131,16 @@
 
         const config = loadResult.data;
 
-        // Find the user directory key in projects object
-        const projects = config.projects || {};
-        const homeDir = Object.keys(projects).find(key =>
-          key.match(/^\/Users\/[^\/]+$/) ||
-          key.match(/^\/home\/[^\/]+$/) ||
-          key.match(/^[A-Z]:\\Users\\[^\\]+$/)
-        );
+        // Get home directory from API
+        const homeDirResponse = await fetch('/api/get-home-dir');
+        const homeDirResult = await homeDirResponse.json();
 
-        if (!homeDir) {
-          showError('홈 디렉토리를 찾을 수 없습니다');
+        if (!homeDirResult.success) {
+          showError('홈 디렉토리를 가져올 수 없습니다: ' + homeDirResult.error);
           return;
         }
+
+        const homeDir = homeDirResult.homeDir;
 
         // Initialize mcpServers if needed
         if (!config.projects[homeDir]) {
