@@ -885,18 +885,34 @@ app.get('/oauth2callback', async (req, res) => {
       secret = existingToken.client_secret;
       console.log(`Using client credentials from existing token file for ${email}`);
     } else {
-      // Fall back to client_secret.json
-      const secretDir = path.join(homeDir, '.mcp-workspace');
-      const secretPath = path.join(secretDir, 'client_secret.json');
+      // Find appropriate client_secret.json based on email
+      const possiblePaths = [
+        // Email-specific paths
+        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
+        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${email.split('@')[0]}`, 'client_secret.json'),
+        // Default path
+        path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
+        // Also check .google_workspace_mcp
+        path.join(homeDir, '.google_workspace_mcp', 'client_secret.json')
+      ];
 
-      if (!fs.existsSync(secretPath)) {
-        return res.status(400).send('client_secret.json not found and no existing token file');
+      let secretPath = null;
+      for (const tryPath of possiblePaths) {
+        if (fs.existsSync(tryPath)) {
+          secretPath = tryPath;
+          console.log(`Found client_secret for ${email} at: ${secretPath}`);
+          break;
+        }
+      }
+
+      if (!secretPath) {
+        return res.status(400).send(`client_secret.json not found for ${email}`);
       }
 
       const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
       client_id = (clientSecret.installed || clientSecret.web).client_id;
       secret = (clientSecret.installed || clientSecret.web).client_secret;
-      console.log(`Using client credentials from client_secret.json`);
+      console.log(`Using client credentials from ${secretPath}`);
     }
 
     // Use the oauth_port from query parameter if available, otherwise default to 8766
