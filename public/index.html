@@ -218,6 +218,92 @@
       display: block;
     }
 
+    /* External Link Dialog Styles */
+    .external-link-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+
+    .external-link-overlay.show {
+      display: flex;
+    }
+
+    .external-link-dialog {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .external-link-dialog h3 {
+      margin: 0 0 12px 0;
+      font-size: 20px;
+      color: #333;
+    }
+
+    .external-link-dialog p {
+      margin: 0 0 16px 0;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .external-link-url {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+      word-break: break-all;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      margin-bottom: 20px;
+      color: #333;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .external-link-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .external-link-button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .external-link-button.cancel {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .external-link-button.cancel:hover {
+      background: #e0e0e0;
+    }
+
+    .external-link-button.open {
+      background: #000;
+      color: white;
+    }
+
+    .external-link-button.open:hover {
+      background: #333;
+    }
+
     .stats {
       background: #f5f5f5;
       padding: 15px;
@@ -674,6 +760,19 @@
             </div>
           </div>
 
+          <!-- MCP Server List Section -->
+          <div style="margin-bottom: 20px; background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+            <h4 style="margin: 0 0 15px 0; color: #667eea; display: flex; align-items: center; gap: 10px;">
+              📋 현재 MCP 서버 목록
+              <button class="btn-danger" onclick="deleteSelectedClaudeCodeServers()" style="margin-left: auto; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                🗑️ 선택 삭제
+              </button>
+            </h4>
+            <div id="claudeCodeServerList" style="max-height: 300px; overflow-y: auto;">
+              <p style="color: #666; font-size: 14px;">서버 목록을 불러오는 중...</p>
+            </div>
+          </div>
+
           <div style="margin-bottom: 20px;">
             <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #667eea;">현재 Claude Config:</label>
             <textarea id="claudeConfigDisplay" readonly style="min-height: 200px; background: #f5f5f5; cursor: default;"></textarea>
@@ -710,6 +809,35 @@
           <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
             <h4 style="margin: 0 0 10px 0; color: #2e7d32;">✓ Claude Desktop Config 로드 완료</h4>
             <p style="margin: 5px 0; color: #1b5e20;">현재 MCP 서버 수: <strong id="claudeDesktopServerCount">0</strong></p>
+          </div>
+
+          <!-- Google Auth Status Section for Desktop Config -->
+          <div id="claudeDesktopAuthSection" style="margin-bottom: 20px; display: none;">
+            <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
+              <h3 style="margin: 0 0 15px 0; color: #f57c00;">🔐 Google 계정 인증 상태</h3>
+              <p style="margin: 0 0 15px 0; color: #666;">
+                Google Workspace MCP 서버의 인증 상태를 확인하고 관리할 수 있습니다.
+              </p>
+              <button class="refresh-btn" onclick="checkClaudeDesktopAuthStatus()" style="margin-left: auto; background: #ffc107; padding: 6px 12px; font-size: 12px;">
+                🔄 새로고침
+              </button>
+              <div id="claudeDesktopAuthStatusList" style="margin-top: 15px;">
+                <p style="color: #666; text-align: center;">인증 상태를 불러오는 중...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- MCP Server List Section for Desktop Config -->
+          <div style="margin-bottom: 20px; background: #f8f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+            <h4 style="margin: 0 0 15px 0; color: #667eea; display: flex; align-items: center; gap: 10px;">
+              📋 현재 MCP 서버 목록
+              <button class="btn-danger" onclick="deleteSelectedClaudeDesktopServers()" style="margin-left: auto; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                🗑️ 선택 삭제
+              </button>
+            </h4>
+            <div id="claudeDesktopServerList" style="max-height: 300px; overflow-y: auto;">
+              <p style="color: #666; font-size: 14px;">서버 목록을 불러오는 중...</p>
+            </div>
           </div>
 
           <div style="margin-bottom: 20px;">
@@ -2058,11 +2186,97 @@
           document.getElementById('claudeConfigSection').style.display = 'block';
           document.getElementById('refreshClaudeBtn').style.display = 'inline-block';
 
+          // Display server list with checkboxes
+          displayClaudeCodeServerList(userMcpServers);
+
           // Check authentication status
           await checkAuthStatus();
 
         } else {
           showError('Claude Config 불러오기 실패: ' + result.error);
+        }
+      } catch (error) {
+        showError('오류: ' + error.message);
+      }
+    }
+
+    function displayClaudeCodeServerList(mcpServers) {
+      const serverListDiv = document.getElementById('claudeCodeServerList');
+      const servers = Object.keys(mcpServers || {});
+
+      if (servers.length === 0) {
+        serverListDiv.innerHTML = '<p style="color: #666; font-size: 14px; text-align: center;">등록된 MCP 서버가 없습니다.</p>';
+        return;
+      }
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+      servers.forEach(serverName => {
+        const serverConfig = mcpServers[serverName];
+        const command = serverConfig.command || '';
+        const type = serverConfig.type || 'stdio';
+
+        html += `
+          <div style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 6px; border: 1px solid #ddd;">
+            <input type="checkbox" id="claude-code-${serverName}" value="${serverName}" style="margin-right: 12px; cursor: pointer; width: 18px; height: 18px;">
+            <label for="claude-code-${serverName}" style="flex: 1; cursor: pointer; margin: 0;">
+              <div style="font-weight: bold; color: #667eea; margin-bottom: 4px;">${serverName}</div>
+              <div style="font-size: 12px; color: #666;">
+                ${type === 'http' ? `URL: ${serverConfig.url || ''}` : `Command: ${command}`}
+              </div>
+            </label>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      serverListDiv.innerHTML = html;
+    }
+
+    async function deleteSelectedClaudeCodeServers() {
+      const checkboxes = document.querySelectorAll('#claudeCodeServerList input[type="checkbox"]:checked');
+      const selectedServers = Array.from(checkboxes).map(cb => cb.value);
+
+      if (selectedServers.length === 0) {
+        alert('삭제할 서버를 선택해주세요.');
+        return;
+      }
+
+      const confirmed = confirm(`선택한 ${selectedServers.length}개의 서버를 삭제하시겠습니까?\n\n${selectedServers.join('\n')}`);
+      if (!confirmed) return;
+
+      try {
+        // Find home directory
+        const projects = claudeConfigData.projects || {};
+        const homeDir = Object.keys(projects).find(key =>
+          key.match(/^\/Users\/[^\/]+$/) ||
+          key.match(/^\/home\/[^\/]+$/) ||
+          key.match(/^[A-Z]:\\Users\\[^\\]+$/)
+        );
+
+        if (!homeDir || !projects[homeDir] || !projects[homeDir].mcpServers) {
+          showError('MCP 서버 설정을 찾을 수 없습니다.');
+          return;
+        }
+
+        // Delete selected servers
+        selectedServers.forEach(serverName => {
+          delete projects[homeDir].mcpServers[serverName];
+        });
+
+        // Save updated config
+        const response = await fetch('/api/save-claude-code-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: claudeConfigData })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess(`${selectedServers.length}개의 서버가 삭제되었습니다.`);
+          await loadClaudeCodeConfig(); // Reload config
+        } else {
+          showError('서버 삭제 실패: ' + result.error);
         }
       } catch (error) {
         showError('오류: ' + error.message);
@@ -2114,6 +2328,10 @@
       const authList = document.getElementById('authStatusList');
       const servers = Object.keys(authStatus);
 
+      console.log('=== Display Auth Status ===');
+      console.log('Auth Status:', authStatus);
+      console.log('Servers:', servers);
+
       if (servers.length === 0) {
         authList.innerHTML = `
           <div style="background: #e8f5e9; padding: 15px; border-radius: 6px; text-align: center;">
@@ -2132,11 +2350,15 @@
 
       servers.forEach(serverName => {
         const status = authStatus[serverName];
-        const isAuthenticated = status.authenticated;
-        const email = status.email || 'N/A';
-        const hasEmail = email !== 'N/A';
+        const isAuthenticated = status.authenticated || false;
+        const needsReauth = status.needsReauth || false;
+        const tokenExpired = status.tokenExpired || false;
+        const email = status.email || null;
+        const hasEmail = email && email !== 'N/A' && email !== '';
 
-        let bgColor, textColor, statusIcon, statusText;
+        console.log(`Server: ${serverName}`, { email, hasEmail, isAuthenticated, needsReauth, tokenExpired });
+
+        let bgColor, textColor, statusIcon, statusText, tokenStatusText = '';
 
         if (!hasEmail) {
           // No email configured
@@ -2144,12 +2366,27 @@
           textColor = '#856404';
           statusIcon = '⚠️';
           statusText = '이메일 미설정';
-        } else if (isAuthenticated) {
-          // Authenticated
+        } else if (isAuthenticated && needsReauth) {
+          // Token expired and needs re-authentication
+          bgColor = '#fff3cd';
+          textColor = '#856404';
+          statusIcon = '⚠️';
+          statusText = '재인증 필요';
+          tokenStatusText = '<span style="color: #d9534f; font-size: 12px; margin-left: 8px;">🔴 토큰 만료</span>';
+        } else if (isAuthenticated && tokenExpired) {
+          // Token expired but has refresh token
           bgColor = '#d4edda';
           textColor = '#155724';
           statusIcon = '✓';
           statusText = '인증됨';
+          tokenStatusText = '<span style="color: #f0ad4e; font-size: 12px; margin-left: 8px;">🟡 토큰 갱신 가능</span>';
+        } else if (isAuthenticated) {
+          // Authenticated and token valid
+          bgColor = '#d4edda';
+          textColor = '#155724';
+          statusIcon = '✓';
+          statusText = '인증됨';
+          tokenStatusText = '<span style="color: #5cb85c; font-size: 12px; margin-left: 8px;">🟢 정상</span>';
         } else {
           // Email set but not authenticated
           bgColor = '#f8d7da';
@@ -2166,9 +2403,10 @@
                 <span style="background: ${textColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
                   ${statusIcon} ${statusText}
                 </span>
+                ${tokenStatusText}
               </div>
               <div style="color: #666; font-size: 13px;">
-                📧 ${escapeHtml(email)}
+                📧 ${hasEmail ? escapeHtml(email) : 'N/A'}
                 ${!hasEmail ? '<span style="color: #999; font-style: italic;"> - Config에서 user_google_email 환경변수를 추가하세요</span>' : ''}
               </div>
             </div>
@@ -2180,8 +2418,17 @@
                 </button>
               ` : !isAuthenticated ? `
                 <button onclick="startAuth('${escapeHtml(email)}', '${escapeHtml(serverName)}')"
-                  style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                  style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;">
                   🔑 인증 시작
+                </button>
+              ` : needsReauth ? `
+                <button onclick="startAuth('${escapeHtml(email)}', '${escapeHtml(serverName)}')"
+                  style="background: #ffc107; color: #333; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                  🔄 재인증
+                </button>
+                <button onclick="deleteAuth('${escapeHtml(email)}')"
+                  style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                  🗑️ 인증 삭제
                 </button>
               ` : `
                 <button onclick="deleteAuth('${escapeHtml(email)}')"
@@ -2232,11 +2479,11 @@
           return;
         }
 
-        // Add email to server config
+        // Add email to server config (use uppercase to match existing convention)
         if (!projects[homeDir].mcpServers[serverName].env) {
           projects[homeDir].mcpServers[serverName].env = {};
         }
-        projects[homeDir].mcpServers[serverName].env.user_google_email = email;
+        projects[homeDir].mcpServers[serverName].env.USER_GOOGLE_EMAIL = email;
 
         // Save updated config
         if (!window.electronAPI || !window.electronAPI.saveClaudeConfig) {
@@ -2267,6 +2514,48 @@
       }
     }
 
+    // External Link Dialog Functions
+    let pendingAuthUrl = null;
+
+    function showExternalLinkDialog(url) {
+      const overlay = document.getElementById('externalLinkOverlay');
+      const urlDisplay = document.getElementById('externalLinkUrl');
+
+      urlDisplay.textContent = url;
+      pendingAuthUrl = url;
+      overlay.classList.add('show');
+    }
+
+    function closeExternalLinkDialog() {
+      const overlay = document.getElementById('externalLinkOverlay');
+      overlay.classList.remove('show');
+      pendingAuthUrl = null;
+    }
+
+    async function confirmOpenExternalLink() {
+      if (pendingAuthUrl) {
+        // Use Electron API if available, otherwise fallback to window.open
+        if (window.electronAPI && window.electronAPI.openExternal) {
+          await window.electronAPI.openExternal(pendingAuthUrl);
+        } else {
+          window.open(pendingAuthUrl, '_blank');
+        }
+      }
+      closeExternalLinkDialog();
+    }
+
+    // Close dialog when clicking outside
+    document.addEventListener('DOMContentLoaded', () => {
+      const overlay = document.getElementById('externalLinkOverlay');
+      if (overlay) {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            closeExternalLinkDialog();
+          }
+        });
+      }
+    });
+
     async function startAuth(email, serverName) {
       try {
         const response = await fetch('/api/start-auth', {
@@ -2286,40 +2575,8 @@
             document.querySelector('[data-tab="oauth"]').classList.add('active');
             document.getElementById('oauth-tab').classList.add('active');
           } else if (result.authUrl) {
-            // Open auth URL in browser
-            const confirmed = confirm(
-              `${email} 계정의 Google 인증 페이지를 브라우저로 엽니다.\n\n` +
-              `1. Google 계정으로 로그인하세요\n` +
-              `2. 권한을 승인하세요\n` +
-              `3. 리다이렉트 URL에서 "code=" 뒤의 코드를 복사하세요\n` +
-              `4. 다음 화면에서 코드를 입력하세요\n\n` +
-              `계속하시겠습니까?`
-            );
-
-            if (confirmed) {
-              // Open auth URL
-              window.open(result.authUrl, '_blank');
-
-              // Wait a moment, then prompt for code
-              setTimeout(async () => {
-                const code = prompt(
-                  `Google 인증을 완료한 후, 리다이렉트 URL에서 "code=" 뒤의 인증 코드를 입력하세요:\n\n` +
-                  `예: http://localhost/?code=4/0AY0e-g7... ← 이 부분을 복사하세요`,
-                  ''
-                );
-
-                if (code) {
-                  await exchangeAuthCode(code, email, result.redirectUri);
-                }
-              }, 2000);
-            }
-          } else {
-            alert(`${email} 계정의 인증을 시작합니다.\n\n` +
-                  `다음 단계:\n` +
-                  `1. 터미널에서 MCP 서버를 실행하세요\n` +
-                  `2. 생성된 인증 URL을 브라우저에서 열어주세요\n` +
-                  `3. Google 계정으로 로그인하고 권한을 승인하세요\n` +
-                  `4. 완료되면 이 화면에서 "새로고침" 버튼을 눌러주세요`);
+            // Show external link confirmation dialog
+            showExternalLinkDialog(result.authUrl);
           }
         } else {
           showError('인증 시작 실패: ' + result.error);
@@ -2370,13 +2627,243 @@
 
         if (result.success) {
           alert(result.message);
-          await checkAuthStatus(); // Refresh status
+          await checkAuthStatus(); // Refresh Code Config status
+          // Also refresh Desktop Config status if visible
+          if (document.getElementById('claudeDesktopAuthSection').style.display !== 'none') {
+            await checkClaudeDesktopAuthStatus();
+          }
         } else {
           showError('인증 삭제 실패: ' + result.message);
         }
       } catch (error) {
         console.error('Error deleting auth:', error);
         showError('인증 삭제 오류: ' + error.message);
+      }
+    }
+
+    // Claude Desktop Config - Auth Status Functions
+    async function checkClaudeDesktopAuthStatus() {
+      console.log('[Desktop Config] checkClaudeDesktopAuthStatus called');
+      console.log('[Desktop Config] claudeDesktopConfigData:', claudeDesktopConfigData);
+
+      if (!claudeDesktopConfigData) {
+        console.log('[Desktop Config] No claudeDesktopConfigData, returning');
+        return;
+      }
+
+      try {
+        const mcpServers = claudeDesktopConfigData.mcpServers || {};
+        console.log('[Desktop Config] MCP Servers to check:', Object.keys(mcpServers));
+
+        // Call API to check authentication status
+        const response = await fetch('/api/check-auth-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mcpServers })
+        });
+
+        const result = await response.json();
+        console.log('[Desktop Config] Auth status result:', result);
+
+        if (result.success) {
+          displayClaudeDesktopAuthStatus(result.authStatus);
+        } else {
+          showError('인증 상태 확인 실패: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error checking Desktop auth status:', error);
+        showError('인증 상태 확인 오류: ' + error.message);
+      }
+    }
+
+    function displayClaudeDesktopAuthStatus(authStatus) {
+      const authList = document.getElementById('claudeDesktopAuthStatusList');
+      const servers = Object.keys(authStatus);
+
+      console.log('=== Display Desktop Auth Status ===');
+      console.log('Auth Status:', authStatus);
+      console.log('Servers:', servers);
+
+      if (servers.length === 0) {
+        authList.innerHTML = `
+          <div style="background: #e8f5e9; padding: 15px; border-radius: 6px; text-align: center;">
+            <p style="color: #2e7d32; font-size: 14px; margin: 0;">
+              ✓ Google 인증이 필요한 MCP 서버가 없습니다
+            </p>
+            <p style="color: #666; font-size: 12px; margin: 5px 0 0 0;">
+              (workspace, google, gmail, drive 등의 키워드를 포함한 서버만 표시됩니다)
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+
+      servers.forEach(serverName => {
+        const status = authStatus[serverName];
+        const isAuthenticated = status.authenticated || false;
+        const needsReauth = status.needsReauth || false;
+        const tokenExpired = status.tokenExpired || false;
+        const email = status.email || null;
+        const hasEmail = email && email !== 'N/A' && email !== '';
+
+        console.log(`Desktop Server: ${serverName}`, { email, hasEmail, isAuthenticated, needsReauth, tokenExpired });
+
+        let bgColor, textColor, statusIcon, statusText, tokenStatusText = '';
+
+        if (!hasEmail) {
+          // No email configured
+          bgColor = '#fff3cd';
+          textColor = '#856404';
+          statusIcon = '⚠️';
+          statusText = '이메일 미설정';
+        } else if (isAuthenticated && needsReauth) {
+          // Token expired and needs re-authentication
+          bgColor = '#fff3cd';
+          textColor = '#856404';
+          statusIcon = '⚠️';
+          statusText = '재인증 필요';
+          tokenStatusText = '<span style="color: #d9534f; font-size: 12px; margin-left: 8px;">🔴 토큰 만료</span>';
+        } else if (isAuthenticated && tokenExpired) {
+          // Token expired but has refresh token
+          bgColor = '#d4edda';
+          textColor = '#155724';
+          statusIcon = '✓';
+          statusText = '인증됨';
+          tokenStatusText = '<span style="color: #f0ad4e; font-size: 12px; margin-left: 8px;">🟡 토큰 갱신 가능</span>';
+        } else if (isAuthenticated) {
+          // Authenticated and token valid
+          bgColor = '#d4edda';
+          textColor = '#155724';
+          statusIcon = '✓';
+          statusText = '인증됨';
+          tokenStatusText = '<span style="color: #5cb85c; font-size: 12px; margin-left: 8px;">🟢 정상</span>';
+        } else {
+          // Email set but not authenticated
+          bgColor = '#f8d7da';
+          textColor = '#721c24';
+          statusIcon = '✗';
+          statusText = '인증 필요';
+        }
+
+        html += `
+          <div style="background: ${bgColor}; padding: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                <strong style="color: ${textColor};">${escapeHtml(serverName)}</strong>
+                <span style="background: ${textColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
+                  ${statusIcon} ${statusText}
+                </span>
+                ${tokenStatusText}
+              </div>
+              <div style="color: #666; font-size: 13px;">
+                📧 ${hasEmail ? escapeHtml(email) : 'N/A'}
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              ${!isAuthenticated ? `
+                <button onclick="startAuth('${escapeHtml(email)}', '${escapeHtml(serverName)}')"
+                  style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                  🔑 인증 시작
+                </button>
+              ` : needsReauth ? `
+                <button onclick="startAuth('${escapeHtml(email)}', '${escapeHtml(serverName)}')"
+                  style="background: #ffc107; color: #333; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;">
+                  🔄 재인증
+                </button>
+                <button onclick="deleteAuth('${escapeHtml(email)}')"
+                  style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                  🗑️ 인증 삭제
+                </button>
+              ` : `
+                <button onclick="deleteAuth('${escapeHtml(email)}')"
+                  style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                  🗑️ 인증 삭제
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+      authList.innerHTML = html;
+    }
+
+    function displayClaudeDesktopServerList(mcpServers) {
+      const serverListDiv = document.getElementById('claudeDesktopServerList');
+      const servers = Object.keys(mcpServers || {});
+
+      if (servers.length === 0) {
+        serverListDiv.innerHTML = '<p style="color: #666; font-size: 14px; text-align: center;">등록된 MCP 서버가 없습니다.</p>';
+        return;
+      }
+
+      let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+      servers.forEach(serverName => {
+        const serverConfig = mcpServers[serverName];
+        const command = serverConfig.command || '';
+        const type = serverConfig.type || 'stdio';
+
+        html += `
+          <div style="display: flex; align-items: center; padding: 10px; background: white; border-radius: 6px; border: 1px solid #ddd;">
+            <input type="checkbox" id="claude-desktop-${serverName}" value="${serverName}" style="margin-right: 12px; cursor: pointer; width: 18px; height: 18px;">
+            <label for="claude-desktop-${serverName}" style="flex: 1; cursor: pointer; margin: 0;">
+              <div style="font-weight: bold; color: #667eea; margin-bottom: 4px;">${serverName}</div>
+              <div style="font-size: 12px; color: #666;">
+                ${type === 'http' ? `URL: ${serverConfig.url || ''}` : `Command: ${command}`}
+              </div>
+            </label>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      serverListDiv.innerHTML = html;
+    }
+
+    async function deleteSelectedClaudeDesktopServers() {
+      const checkboxes = document.querySelectorAll('#claudeDesktopServerList input[type="checkbox"]:checked');
+      const selectedServers = Array.from(checkboxes).map(cb => cb.value);
+
+      if (selectedServers.length === 0) {
+        alert('삭제할 서버를 선택해주세요.');
+        return;
+      }
+
+      const confirmed = confirm(`선택한 ${selectedServers.length}개의 서버를 삭제하시겠습니까?\n\n${selectedServers.join('\n')}`);
+      if (!confirmed) return;
+
+      try {
+        // Get MCP servers
+        const mcpServers = claudeDesktopConfigData.mcpServers || {};
+
+        // Delete selected servers
+        selectedServers.forEach(serverName => {
+          delete mcpServers[serverName];
+        });
+
+        // Update config data
+        claudeDesktopConfigData.mcpServers = mcpServers;
+
+        // Save updated config
+        const response = await fetch('/api/save-claude-desktop-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: claudeDesktopConfigData })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess(`${selectedServers.length}개의 서버가 삭제되었습니다.`);
+          await loadClaudeDesktopConfig(); // Reload config
+        } else {
+          showError('서버 삭제 실패: ' + result.error);
+        }
+      } catch (error) {
+        showError('오류: ' + error.message);
       }
     }
 
@@ -2689,6 +3176,35 @@
           document.getElementById('claudeDesktopConfigSection').style.display = 'block';
           document.getElementById('refreshClaudeDesktopBtn').style.display = 'inline-block';
 
+          // Display server list with checkboxes
+          displayClaudeDesktopServerList(mcpServers);
+
+          // Check if there are Google Workspace MCP servers
+          const googleWorkspaceKeywords = ['workspace', 'google', 'gmail', 'drive', 'sheets', 'docs', 'calendar'];
+          console.log('[Desktop Config] All MCP server names:', Object.keys(mcpServers));
+          const hasGoogleServers = Object.keys(mcpServers).some(serverName =>
+            googleWorkspaceKeywords.some(keyword => serverName.toLowerCase().includes(keyword))
+          );
+          console.log('[Desktop Config] Has Google servers:', hasGoogleServers);
+
+          // Show auth status section if there are Google servers
+          if (hasGoogleServers) {
+            console.log('[Desktop Config] Showing auth section');
+            const authSection = document.getElementById('claudeDesktopAuthSection');
+            console.log('[Desktop Config] Auth section element:', authSection);
+            if (authSection) {
+              authSection.style.display = 'block';
+              console.log('[Desktop Config] Auth section display set to block');
+            } else {
+              console.error('[Desktop Config] Auth section element not found!');
+            }
+            // Check authentication status
+            await checkClaudeDesktopAuthStatus();
+          } else {
+            console.log('[Desktop Config] Hiding auth section - no Google servers detected');
+            document.getElementById('claudeDesktopAuthSection').style.display = 'none';
+          }
+
         } else {
           showError('Claude Desktop Config 불러오기 실패: ' + result.error);
         }
@@ -2706,6 +3222,11 @@
       // Hide server name section
       document.getElementById('claudeDesktopServerNameSection').style.display = 'none';
       document.getElementById('claudeDesktopMergeBtn').style.display = 'none';
+
+      // Refresh auth status if section is visible
+      if (document.getElementById('claudeDesktopAuthSection').style.display !== 'none') {
+        await checkClaudeDesktopAuthStatus();
+      }
 
       // Show success message
       const tempMessage = document.createElement('div');
@@ -3901,5 +4422,19 @@
       }
     }
   </script>
+
+  <!-- External Link Confirmation Dialog -->
+  <div id="externalLinkOverlay" class="external-link-overlay">
+    <div class="external-link-dialog">
+      <h3>Open external link</h3>
+      <p>You're leaving Claude to visit an external link:</p>
+      <div id="externalLinkUrl" class="external-link-url"></div>
+      <div class="external-link-buttons">
+        <button class="external-link-button cancel" onclick="closeExternalLinkDialog()">Cancel</button>
+        <button class="external-link-button open" onclick="confirmOpenExternalLink()">Open link</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

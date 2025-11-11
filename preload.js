@@ -34,5 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Claude Config 저장
   saveClaudeConfig: (data) => {
     return ipcRenderer.invoke('save-claude-config', data);
+  },
+
+  // 외부 브라우저에서 URL 열기
+  openExternal: (url) => {
+    return ipcRenderer.invoke('open-external', url);
   }
 });

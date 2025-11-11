@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
 const fs = require('fs');
@@ -327,6 +327,18 @@ ipcMain.handle('save-claude-config', async (event, { path: configPath, data }) =
       success: false,
       error: error.message
     };
+  }
+});
+
+// 외부 브라우저에서 URL 열기
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    console.log('Opening external URL:', url);
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error opening external URL:', error);
+    return { success: false, error: error.message };
   }
 });
 
