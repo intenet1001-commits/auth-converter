@@ -205,7 +205,7 @@ app.get('/api/scan-extensions', (req, res) => {
 // Convert Extension to MCP Server config
 app.post('/api/extension-to-mcp', (req, res) => {
   try {
-    const { extension, shareCredentials } = req.body;
+    const { extension, shareCredentials, uploadedClientSecret } = req.body;
 
     if (!extension || !extension.server) {
       return res.status(400).json({
@@ -254,6 +254,86 @@ app.post('/api/extension-to-mcp', (req, res) => {
       console.log('Credentials sharing enabled:', sharedCredentialsDir);
     }
 
+    // Check if this is a workspace MCP server and auto-detect OAuth port
+    const isWorkspaceMcp = extension.id && extension.id.includes('workspace-mcp');
+    let detectedPort = null;
+    let portSource = null; // Track where port was detected from
+
+    if (isWorkspaceMcp) {
+      // PRIORITY 1: Try to extract port from uploaded client_secret.json (if available)
+      if (uploadedClientSecret) {
+        try {
+          const clientConfig = uploadedClientSecret.installed || uploadedClientSecret.web;
+          if (clientConfig && clientConfig.redirect_uris && clientConfig.redirect_uris.length > 0) {
+            const redirectUri = clientConfig.redirect_uris[0];
+            const portMatch = redirectUri.match(/:(\d+)\//);
+            if (portMatch) {
+              detectedPort = parseInt(portMatch[1]);
+              portSource = 'uploaded_client_secret';
+              console.log(`✓ Port ${detectedPort} extracted from uploaded client_secret.json redirect_uri: ${redirectUri}`);
+
+              // Add WORKSPACE_MCP_PORT to env
+              env.WORKSPACE_MCP_PORT = String(detectedPort);
+              env.WORKSPACE_MCP_BASE_URI = env.WORKSPACE_MCP_BASE_URI || 'http://localhost';
+              env.OAUTHLIB_INSECURE_TRANSPORT = env.OAUTHLIB_INSECURE_TRANSPORT || 'true';
+            }
+          }
+        } catch (err) {
+          console.error('Error extracting port from uploaded client_secret:', err);
+        }
+      }
+
+      // PRIORITY 2: Try to find port from oauth_port_map.json (fallback)
+      if (!detectedPort) {
+        const homeDir = os.homedir();
+        const portMapPath = path.join(homeDir, '.mcp-workspace', 'oauth_port_map.json');
+
+        if (fs.existsSync(portMapPath)) {
+          try {
+            const portMap = JSON.parse(fs.readFileSync(portMapPath, 'utf8'));
+
+            // Extract USER_GOOGLE_EMAIL from env to find matching port
+            const userEmail = env.USER_GOOGLE_EMAIL || env.user_google_email;
+
+            if (userEmail) {
+              // Look for client_secret.json for this email to get client_id
+              const clientSecretDirs = fs.readdirSync(
+                path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp'),
+                { withFileTypes: true }
+              ).filter(dirent => dirent.isDirectory() && dirent.name.startsWith('client_secret_'));
+
+              for (const dir of clientSecretDirs) {
+                const secretPath = path.join(
+                  homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
+                  dir.name, 'client_secret.json'
+                );
+
+                if (fs.existsSync(secretPath)) {
+                  const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+                  const clientConfig = clientSecret.installed || clientSecret.web;
+                  const clientId = clientConfig.client_id;
+
+                  if (portMap[clientId]) {
+                    detectedPort = portMap[clientId];
+                    portSource = 'oauth_port_map';
+                    console.log(`Auto-detected OAuth port ${detectedPort} for ${userEmail} from port map`);
+
+                    // Add WORKSPACE_MCP_PORT to env
+                    env.WORKSPACE_MCP_PORT = String(detectedPort);
+                    env.WORKSPACE_MCP_BASE_URI = env.WORKSPACE_MCP_BASE_URI || 'http://localhost';
+                    env.OAUTHLIB_INSECURE_TRANSPORT = env.OAUTHLIB_INSECURE_TRANSPORT || 'true';
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error reading port map:', err);
+          }
+        }
+      }
+    }
+
     const mcpServerConfig = {
       command: command,
       args: args
@@ -270,7 +350,10 @@ app.post('/api/extension-to-mcp', (req, res) => {
       requiresUserConfig: Object.keys(extension.userConfig || {}).length > 0,
       userConfigFields: extension.userConfig || {},
       credentialsShared: shareCredentials || false,
-      credentialsDir: shareCredentials ? env['GOOGLE_MCP_CREDENTIALS_DIR'] : null
+      credentialsDir: shareCredentials ? env['GOOGLE_MCP_CREDENTIALS_DIR'] : null,
+      detectedPort: detectedPort,
+      portAutoConfigured: detectedPort !== null,
+      portSource: portSource // 'uploaded_client_secret' or 'oauth_port_map' or null
     });
 
   } catch (error) {
@@ -281,7 +364,7 @@ app.post('/api/extension-to-mcp', (req, res) => {
 // Save client secret file API
 app.post('/api/save-client-secret', (req, res) => {
   try {
-    const { clientSecretData, accountId } = req.body;
+    const { clientSecretData, accountId, email, serverName, autoAddPort } = req.body;
 
     if (!clientSecretData || !accountId) {
       return res.status(400).json({
@@ -349,14 +432,264 @@ app.post('/api/save-client-secret', (req, res) => {
 
     console.log('Client secret saved to:', secretPath);
 
+    // Auto-add port to .claude.json if requested and port detected
+    let portAddedToConfig = false;
+    if (autoAddPort && detectedPort && serverName) {
+      try {
+        const claudeConfigPath = path.join(homeDir, '.claude.json');
+
+        if (fs.existsSync(claudeConfigPath)) {
+          const claudeConfig = JSON.parse(fs.readFileSync(claudeConfigPath, 'utf8'));
+
+          // Find the project entry
+          const projects = claudeConfig.projects || {};
+          const projectKey = Object.keys(projects).find(key =>
+            key.match(/^\/Users\/[^\/]+$/) ||
+            key.match(/^\/home\/[^\/]+$/) ||
+            key.match(/^[A-Z]:\\Users\\[^\\]+$/)
+          );
+
+          if (projectKey && projects[projectKey] && projects[projectKey].mcpServers) {
+            const server = projects[projectKey].mcpServers[serverName];
+
+            if (server) {
+              // Add or update WORKSPACE_MCP_PORT in env
+              if (!server.env) {
+                server.env = {};
+              }
+
+              server.env.WORKSPACE_MCP_PORT = String(detectedPort);
+
+              // Also add related env vars if not present
+              if (!server.env.WORKSPACE_MCP_BASE_URI) {
+                server.env.WORKSPACE_MCP_BASE_URI = 'http://localhost';
+              }
+              if (!server.env.OAUTHLIB_INSECURE_TRANSPORT) {
+                server.env.OAUTHLIB_INSECURE_TRANSPORT = 'true';
+              }
+
+              // Save updated config
+              fs.writeFileSync(claudeConfigPath, JSON.stringify(claudeConfig, null, 2));
+
+              console.log(`✅ Auto-added WORKSPACE_MCP_PORT=${detectedPort} to ${serverName} in .claude.json`);
+              portAddedToConfig = true;
+            } else {
+              console.log(`⚠️ Server ${serverName} not found in .claude.json`);
+            }
+          } else {
+            console.log('⚠️ No project entry found in .claude.json');
+          }
+        } else {
+          console.log('⚠️ .claude.json not found');
+        }
+      } catch (error) {
+        console.error('Error auto-adding port to .claude.json:', error);
+        // Continue anyway, don't fail the entire request
+      }
+    }
+
     res.json({
       success: true,
       path: secretPath,
       detectedPort: detectedPort,
-      client_id: client_id
+      client_id: client_id,
+      portAddedToConfig: portAddedToConfig
     });
 
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Detect OAuth port from existing Extension's client_secret.json
+app.post('/api/detect-port-from-extension', (req, res) => {
+  try {
+    const { serverName, email } = req.body;
+
+    console.log(`🔍 Detecting port for server: ${serverName}, email: ${email}`);
+
+    // Try to find client_secret.json from various possible locations
+    const homeDir = os.homedir();
+    const possiblePaths = [];
+
+    // 1. From server name (extract account identifier)
+    if (serverName) {
+      const match = serverName.match(/workspace-mcp-(.+?)(?:-v\d+)?$/);
+      if (match) {
+        const accountId = match[1];
+        possiblePaths.push(
+          path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${accountId}`, 'client_secret.json')
+        );
+      }
+    }
+
+    // 2. From email
+    if (email) {
+      const accountId = email.split('@')[0];
+      possiblePaths.push(
+        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${accountId}`, 'client_secret.json')
+      );
+    }
+
+    // 3. Try to find from .claude.json GOOGLE_CLIENT_SECRET_PATH
+    const claudeConfigPath = path.join(homeDir, '.claude.json');
+    if (fs.existsSync(claudeConfigPath)) {
+      try {
+        const claudeConfig = JSON.parse(fs.readFileSync(claudeConfigPath, 'utf8'));
+        const projects = claudeConfig.projects || {};
+        const projectKey = Object.keys(projects).find(key =>
+          key.match(/^\/Users\/[^\/]+$/) ||
+          key.match(/^\/home\/[^\/]+$/) ||
+          key.match(/^[A-Z]:\\Users\\[^\\]+$/)
+        );
+
+        if (projectKey && projects[projectKey] && projects[projectKey].mcpServers) {
+          const server = projects[projectKey].mcpServers[serverName];
+          if (server && server.env && server.env.GOOGLE_CLIENT_SECRET_PATH) {
+            possiblePaths.push(server.env.GOOGLE_CLIENT_SECRET_PATH);
+          }
+        }
+      } catch (err) {
+        console.error('Error reading .claude.json:', err);
+      }
+    }
+
+    console.log('Possible client_secret paths:', possiblePaths);
+
+    // Try each path
+    for (const secretPath of possiblePaths) {
+      if (fs.existsSync(secretPath)) {
+        try {
+          const clientSecretData = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+          const clientConfig = clientSecretData.installed || clientSecretData.web;
+
+          if (clientConfig && clientConfig.redirect_uris) {
+            // Extract port from redirect_uris
+            for (const uri of clientConfig.redirect_uris) {
+              const match = uri.match(/http:\/\/localhost:(\d+)/);
+              if (match) {
+                const detectedPort = parseInt(match[1]);
+                console.log(`✅ Detected port ${detectedPort} from ${secretPath}`);
+
+                return res.json({
+                  success: true,
+                  port: detectedPort,
+                  source: secretPath
+                });
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`Error reading ${secretPath}:`, err);
+          continue;
+        }
+      }
+    }
+
+    // No port found
+    return res.json({
+      success: false,
+      error: 'client_secret.json을 찾을 수 없거나 포트 정보가 없습니다.',
+      searchedPaths: possiblePaths
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get OAuth port for a specific account from saved client_secret
+app.post('/api/get-oauth-port', (req, res) => {
+  try {
+    const { accountId } = req.body;
+
+    if (!accountId) {
+      return res.status(400).json({
+        success: false,
+        error: 'accountId가 필요합니다'
+      });
+    }
+
+    console.log(`🔍 Checking OAuth port for account: ${accountId}`);
+
+    // Path to saved client_secret file
+    const clientSecretPath = path.join(
+      __dirname,
+      '..',
+      'google_workspace_mcp',
+      `client_secret_${accountId}`,
+      'client_secret.json'
+    );
+
+    console.log(`📁 Looking for client_secret at: ${clientSecretPath}`);
+
+    if (!fs.existsSync(clientSecretPath)) {
+      console.log(`❌ Client secret file not found for ${accountId}`);
+      return res.json({
+        success: false,
+        error: 'Client secret 파일을 찾을 수 없습니다'
+      });
+    }
+
+    // Read client_secret file
+    const clientSecret = JSON.parse(fs.readFileSync(clientSecretPath, 'utf8'));
+    const clientConfig = clientSecret.web || clientSecret.installed;
+
+    if (!clientConfig || !clientConfig.client_id) {
+      console.log(`❌ Invalid client_secret format for ${accountId}`);
+      return res.json({
+        success: false,
+        error: 'Client secret 형식이 올바르지 않습니다'
+      });
+    }
+
+    const clientId = clientConfig.client_id;
+    console.log(`✓ Found client_id: ${clientId}`);
+
+    // Try to get port from oauth_port_map.json
+    const homeDir = os.homedir();
+    const portMapPath = path.join(homeDir, '.mcp-workspace', 'oauth_port_map.json');
+
+    if (fs.existsSync(portMapPath)) {
+      const portMap = JSON.parse(fs.readFileSync(portMapPath, 'utf8'));
+
+      if (portMap[clientId]) {
+        const port = portMap[clientId];
+        console.log(`✓ Found port ${port} for client_id ${clientId}`);
+        return res.json({
+          success: true,
+          port: port,
+          clientId: clientId,
+          source: 'oauth_port_map'
+        });
+      }
+    }
+
+    // Fallback: Try to extract port from redirect_uri
+    if (clientConfig.redirect_uris && clientConfig.redirect_uris.length > 0) {
+      const redirectUri = clientConfig.redirect_uris[0];
+      const portMatch = redirectUri.match(/:(\d+)\//);
+
+      if (portMatch) {
+        const port = parseInt(portMatch[1]);
+        console.log(`✓ Extracted port ${port} from redirect_uri: ${redirectUri}`);
+        return res.json({
+          success: true,
+          port: port,
+          clientId: clientId,
+          source: 'redirect_uri'
+        });
+      }
+    }
+
+    console.log(`❌ Could not determine port for ${accountId}`);
+    return res.json({
+      success: false,
+      error: '포트를 확인할 수 없습니다'
+    });
+
+  } catch (error) {
+    console.error('Error in get-oauth-port:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -402,11 +735,113 @@ app.post('/api/check-auth-status', async (req, res) => {
         authenticated: false,
         email: null,
         tokenPath: null,
-        needsEmail: false
+        needsEmail: false,
+        configuredPort: null,
+        detectedPort: null,
+        portMismatch: false
       };
 
       // Check if server has env variables for Google email (case-insensitive)
       const email = server.env && (server.env.user_google_email || server.env.USER_GOOGLE_EMAIL);
+
+      // Check configured OAuth port
+      const configuredPort = server.env && (server.env.WORKSPACE_MCP_PORT || server.env.PORT);
+      if (configuredPort) {
+        authStatus[serverName].configuredPort = parseInt(configuredPort);
+        console.log(`Found configured port in env: ${configuredPort}`);
+      }
+
+      // Try to detect the OAuth port from oauth_port_map.json
+      const portMapPath = path.join(homeDir, '.mcp-workspace', 'oauth_port_map.json');
+      if (fs.existsSync(portMapPath)) {
+        try {
+          const portMap = JSON.parse(fs.readFileSync(portMapPath, 'utf8'));
+
+          // Try to find matching client_secret.json for this email
+          if (email) {
+            // Extract account ID from email (e.g., intenet8821@gmail.com -> intenet8821)
+            const accountId = email.split('@')[0];
+            console.log(`Server: Looking for client_secret for account: ${accountId}`);
+
+            // Try the specific client_secret directory for this account
+            const specificSecretPath = path.join(
+              homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
+              `client_secret_${accountId}`, 'client_secret.json'
+            );
+
+            let foundPort = false;
+
+            if (fs.existsSync(specificSecretPath)) {
+              try {
+                console.log(`Server: Reading client_secret from ${specificSecretPath}`);
+                const clientSecret = JSON.parse(fs.readFileSync(specificSecretPath, 'utf8'));
+                const clientConfig = clientSecret.installed || clientSecret.web;
+                const clientId = clientConfig.client_id;
+
+                console.log(`Server: Client ID for ${email}: ${clientId}`);
+
+                if (portMap[clientId]) {
+                  authStatus[serverName].detectedPort = portMap[clientId];
+                  console.log(`Server: Detected OAuth port ${portMap[clientId]} for ${email}`);
+                  foundPort = true;
+
+                  // Check for port mismatch
+                  if (configuredPort && parseInt(configuredPort) !== portMap[clientId]) {
+                    authStatus[serverName].portMismatch = true;
+                    authStatus[serverName].portMismatchWarning = `Configured port ${configuredPort} doesn't match client_secret port ${portMap[clientId]}`;
+                    console.log(`⚠️ Port mismatch detected for ${serverName}`);
+                  } else if (!configuredPort) {
+                    authStatus[serverName].needsPortConfig = true;
+                    console.log(`⚠️ WORKSPACE_MCP_PORT not configured for ${serverName}`);
+                  }
+                }
+              } catch (err) {
+                console.error(`Error reading ${specificSecretPath}:`, err);
+              }
+            }
+
+            // If not found, fall back to scanning all directories (old behavior)
+            if (!foundPort) {
+              console.log(`Server: Specific client_secret not found, scanning all directories...`);
+              const clientSecretDirs = fs.readdirSync(
+                path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp'),
+                { withFileTypes: true }
+              ).filter(dirent => dirent.isDirectory() && dirent.name.startsWith('client_secret_'));
+
+              for (const dir of clientSecretDirs) {
+                const secretPath = path.join(
+                  homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
+                  dir.name, 'client_secret.json'
+                );
+
+                if (fs.existsSync(secretPath)) {
+                  const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+                  const clientConfig = clientSecret.installed || clientSecret.web;
+                  const clientId = clientConfig.client_id;
+
+                  if (portMap[clientId]) {
+                    authStatus[serverName].detectedPort = portMap[clientId];
+                    console.log(`Detected OAuth port ${portMap[clientId]} for ${email} from ${dir.name}`);
+
+                    // Check for port mismatch
+                    if (configuredPort && parseInt(configuredPort) !== portMap[clientId]) {
+                      authStatus[serverName].portMismatch = true;
+                      authStatus[serverName].portMismatchWarning = `Configured port ${configuredPort} doesn't match client_secret port ${portMap[clientId]}`;
+                      console.log(`⚠️ Port mismatch detected for ${serverName}`);
+                    } else if (!configuredPort) {
+                      authStatus[serverName].needsPortConfig = true;
+                      console.log(`⚠️ WORKSPACE_MCP_PORT not configured for ${serverName}`);
+                    }
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error reading port map:', err);
+        }
+      }
 
       if (email) {
         console.log(`Found email in env: ${email}`);
@@ -449,25 +884,56 @@ app.post('/api/check-auth-status', async (req, res) => {
               authStatus[serverName].tokenExpired = isExpired;
               authStatus[serverName].hasRefreshToken = !!hasRefreshToken;
 
-              // Set authentication status based on token expiry
-              if (isExpired) {
-                // Token is expired
+              // Verify token with Google API (with timeout)
+              let isTokenActuallyValid = false;
+              if (hasAccessToken && !isExpired) {
+                try {
+                  const token = hasAccessToken;
+                  const verifyUrl = `https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${encodeURIComponent(token)}`;
+
+                  const https = require('https');
+                  const verifyResult = await Promise.race([
+                    new Promise((resolve) => {
+                      https.get(verifyUrl, (res) => {
+                        let data = '';
+                        res.on('data', (chunk) => data += chunk);
+                        res.on('end', () => {
+                          resolve(res.statusCode === 200);
+                        });
+                      }).on('error', () => {
+                        resolve(false);
+                      });
+                    }),
+                    new Promise((resolve) => setTimeout(() => resolve(false), 3000)) // 3초 타임아웃
+                  ]);
+
+                  isTokenActuallyValid = verifyResult;
+                  console.log(`Token verification for ${email}: ${isTokenActuallyValid ? 'VALID' : 'INVALID/TIMEOUT'}`);
+                } catch (err) {
+                  console.error(`Error verifying token for ${email}:`, err);
+                  isTokenActuallyValid = false;
+                }
+              }
+
+              // Set authentication status
+              if (isExpired || !isTokenActuallyValid) {
+                // Token is expired or invalid
                 authStatus[serverName].authenticated = false;
                 if (hasRefreshToken) {
                   authStatus[serverName].canRefresh = true;
                   authStatus[serverName].needsReauth = true;
-                  console.log(`⚠️ Token expired, has refresh token - needs re-auth for ${email}`);
+                  console.log(`⚠️ Token invalid/expired, needs re-auth for ${email}`);
                 } else {
                   authStatus[serverName].canRefresh = false;
                   authStatus[serverName].needsReauth = true;
-                  console.log(`⚠️ Token expired and no refresh token for ${email}`);
+                  console.log(`⚠️ Token invalid and no refresh token for ${email}`);
                 }
               } else {
-                // Token is not expired
+                // Token is valid
                 authStatus[serverName].authenticated = true;
                 authStatus[serverName].canRefresh = false;
                 authStatus[serverName].needsReauth = false;
-                console.log(`✓ Token valid for ${email}`);
+                console.log(`✓ Token valid and verified for ${email}`);
               }
             }
           } catch (err) {
@@ -511,9 +977,10 @@ app.post('/api/start-auth', (req, res) => {
 
     // Try multiple locations for client_secret.json
     const possiblePaths = [
-      // Email-specific paths
-      path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
+      // Email-specific paths (PRIORITY 1: correct format)
       path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${email.split('@')[0]}`, 'client_secret.json'),
+      // Fallback paths
+      path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
       // Default path
       path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
       // Also check .google_workspace_mcp
@@ -556,6 +1023,9 @@ app.post('/api/start-auth', (req, res) => {
       }
     }
 
+    // Check if this is "installed" (Desktop App) or "web" type
+    const isDesktopApp = !!clientSecret.installed;
+
     // Extract port from redirect_uris in client_secret.json (highest priority)
     if (redirect_uris && redirect_uris.length > 0) {
       for (const uri of redirect_uris) {
@@ -568,7 +1038,10 @@ app.post('/api/start-auth', (req, res) => {
       }
     }
 
-    const redirectUri = `http://localhost:${oauthPort}/oauth2callback`;
+    // For Desktop App (installed), use dynamic port in redirect_uri
+    const redirectUri = isDesktopApp
+      ? `http://localhost:${oauthPort}/oauth2callback`
+      : `http://localhost:${oauthPort}/oauth2callback`;
 
     console.log(`Using OAuth port ${oauthPort} for ${email} (client_id: ${client_id})`);
 
@@ -696,14 +1169,34 @@ app.post('/api/delete-auth', (req, res) => {
     }
 
     const homeDir = os.homedir();
-    const tokenDir = path.join(homeDir, '.mcp-workspace');
-    const tokenPath = path.join(tokenDir, `token-${email}.json`);
 
-    if (fs.existsSync(tokenPath)) {
-      fs.unlinkSync(tokenPath);
+    // Check both possible token locations
+    const tokenPath1 = path.join(homeDir, '.mcp-workspace', `token-${email}.json`);
+    const tokenPath2 = path.join(homeDir, '.google_workspace_mcp', 'credentials', `${email}.json`);
+
+    let deleted = false;
+    let deletedPaths = [];
+
+    // Delete from first location
+    if (fs.existsSync(tokenPath1)) {
+      fs.unlinkSync(tokenPath1);
+      deleted = true;
+      deletedPaths.push(tokenPath1);
+      console.log(`Deleted token from: ${tokenPath1}`);
+    }
+
+    // Delete from second location
+    if (fs.existsSync(tokenPath2)) {
+      fs.unlinkSync(tokenPath2);
+      deleted = true;
+      deletedPaths.push(tokenPath2);
+      console.log(`Deleted token from: ${tokenPath2}`);
+    }
+
+    if (deleted) {
       res.json({
         success: true,
-        message: `${email} 계정의 인증 토큰이 삭제되었습니다`
+        message: `${email} 계정의 인증 토큰이 삭제되었습니다 (${deletedPaths.length}개 파일)`
       });
     } else {
       res.json({
@@ -887,9 +1380,10 @@ app.get('/oauth2callback', async (req, res) => {
     } else {
       // Find appropriate client_secret.json based on email
       const possiblePaths = [
-        // Email-specific paths
-        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
+        // Email-specific paths (PRIORITY 1: correct format)
         path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${email.split('@')[0]}`, 'client_secret.json'),
+        // Fallback paths
+        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
         // Default path
         path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
         // Also check .google_workspace_mcp
@@ -932,9 +1426,21 @@ app.get('/oauth2callback', async (req, res) => {
       grant_type: 'authorization_code'
     });
 
+    // DEBUG: Log token exchange request details
+    console.log('\n🔍 ===== TOKEN EXCHANGE REQUEST DEBUG =====');
+    console.log('  tokenUrl:', tokenUrl);
+    console.log('  client_id:', client_id);
+    console.log('  client_secret:', secret ? `${secret.substring(0, 10)}...${secret.substring(secret.length - 5)}` : 'null');
+    console.log('  redirect_uri:', redirectUri);
+    console.log('  code (first 20 chars):', code ? code.substring(0, 20) + '...' : 'null');
+    console.log('  grant_type:', 'authorization_code');
+    console.log('🔍 =========================================\n');
+
     const https = require('https');
     const tokenData = await new Promise((resolve, reject) => {
       const postData = params.toString();
+      console.log('🔍 POST data length:', postData.length);
+      console.log('🔍 POST data (first 100 chars):', postData.substring(0, 100) + '...');
       const options = {
         method: 'POST',
         headers: {
@@ -944,12 +1450,17 @@ app.get('/oauth2callback', async (req, res) => {
       };
 
       const reqHTTPS = https.request(tokenUrl, options, (resHTTPS) => {
+        console.log('🔍 Response status code:', resHTTPS.statusCode);
+        console.log('🔍 Response headers:', JSON.stringify(resHTTPS.headers, null, 2));
         let data = '';
         resHTTPS.on('data', (chunk) => data += chunk);
         resHTTPS.on('end', () => {
+          console.log('🔍 Response body:', data);
           if (resHTTPS.statusCode === 200) {
+            console.log('✅ Token exchange successful!');
             resolve(JSON.parse(data));
           } else {
+            console.log('❌ Token exchange failed!');
             reject(new Error(`Token exchange failed: ${data}`));
           }
         });
@@ -1071,6 +1582,138 @@ app.post('/api/save-claude-desktop-config', (req, res) => {
     });
   } catch (error) {
     console.error('Error saving Claude Desktop Config:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update environment variables for an MCP server
+app.post('/api/update-server-env', (req, res) => {
+  try {
+    const { serverName, envVars, configType } = req.body;
+
+    if (!serverName || !envVars) {
+      return res.status(400).json({
+        success: false,
+        error: 'serverName과 envVars가 필요합니다'
+      });
+    }
+
+    const homeDir = os.homedir();
+    let configPath, config;
+
+    // Determine which config to update
+    if (configType === 'desktop') {
+      // Claude Desktop config
+      configPath = path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+    } else {
+      // Claude Code config (default)
+      configPath = path.join(homeDir, '.claude.json');
+    }
+
+    if (!fs.existsSync(configPath)) {
+      return res.status(404).json({
+        success: false,
+        error: '설정 파일을 찾을 수 없습니다: ' + configPath
+      });
+    }
+
+    // Read existing config
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+    // Find and update the server
+    let serverConfig = null;
+    if (configType === 'desktop') {
+      // Desktop: mcpServers is at top level
+      if (config.mcpServers && config.mcpServers[serverName]) {
+        serverConfig = config.mcpServers[serverName];
+      }
+    } else {
+      // Code: mcpServers is under projects[homeDir]
+      if (config.projects && config.projects[homeDir] && config.projects[homeDir].mcpServers) {
+        if (config.projects[homeDir].mcpServers[serverName]) {
+          serverConfig = config.projects[homeDir].mcpServers[serverName];
+        }
+      }
+    }
+
+    if (!serverConfig) {
+      return res.status(404).json({
+        success: false,
+        error: `서버 "${serverName}"을 찾을 수 없습니다`
+      });
+    }
+
+    // Initialize env if doesn't exist
+    if (!serverConfig.env) {
+      serverConfig.env = {};
+    }
+
+    // Update or add environment variables
+    Object.keys(envVars).forEach(key => {
+      if (envVars[key] === null || envVars[key] === undefined || envVars[key] === '') {
+        // Remove the variable if value is empty
+        delete serverConfig.env[key];
+      } else {
+        // Add or update the variable
+        serverConfig.env[key] = envVars[key];
+      }
+    });
+
+    // Create backup
+    const backupPath = configPath + '.backup';
+    fs.writeFileSync(backupPath, fs.readFileSync(configPath));
+
+    // Save updated config
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+    console.log(`✓ Updated environment variables for ${serverName} in ${configPath}`);
+
+    res.json({
+      success: true,
+      message: `환경 변수가 업데이트되었습니다`,
+      serverName: serverName,
+      updatedEnv: serverConfig.env,
+      backupPath: backupPath
+    });
+
+  } catch (error) {
+    console.error('Error updating server env:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Read documentation files
+app.get('/api/docs/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const allowedFiles = ['README.md', 'TROUBLESHOOTING.md', 'CLAUDE.md'];
+
+    if (!allowedFiles.includes(filename)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid filename'
+      });
+    }
+
+    const filePath = path.join(__dirname, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found'
+      });
+    }
+
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    res.json({
+      success: true,
+      filename: filename,
+      content: content
+    });
+
+  } catch (error) {
+    console.error('Error reading documentation:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

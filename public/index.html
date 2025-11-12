@@ -650,7 +650,7 @@
       <div class="version-info">Ver 1.0 | 2025-11-04</div>
       <div class="header-controls">
         <button class="refresh-btn" onclick="resetApp()">🔄 앱 초기화</button>
-        <button class="help-btn" onclick="openHelp()">📖 사용 설명서</button>
+        <button class="help-btn" onclick="switchTab('help')">📖 도움말</button>
       </div>
     </div>
 
@@ -688,6 +688,7 @@
           <button class="tab" onclick="switchTab('claudeDesktop')">Claude Desktop Config</button>
           <button class="tab" onclick="switchTab('sync')">MCP Sync</button>
           <button class="tab" onclick="switchTab('extensions')">Extensions Sync</button>
+          <button class="tab" onclick="switchTab('help')">📚 도움말</button>
         </div>
       </div>
 
@@ -899,17 +900,20 @@
             </div>
 
             <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #FF9800;">
-              <h4 style="margin: 0 0 10px 0; color: #e65100;">👤 계정 식별자 (선택사항)</h4>
+              <h4 style="margin: 0 0 10px 0; color: #e65100;">👤 계정 식별자</h4>
               <p style="margin: 5px 0 10px 0; color: #e65100; font-size: 13px;">
-                여러 계정을 동시에 사용하려면 계정 식별자를 입력하세요. (예: intenet1, intenet8821)<br>
+                <strong>여러 계정을 동시에 사용하는 경우:</strong> 반드시 계정 식별자를 입력하세요. (예: intenet1, intenet8821)<br>
                 <span style="font-size: 12px; opacity: 0.9;">서버 이름: <strong>workspace-mcp-{식별자}</strong> 형식으로 생성됩니다.</span>
+              </p>
+              <p style="margin: 5px 0 10px 0; color: #e65100; font-size: 13px;">
+                <strong>단일 계정만 사용하는 경우:</strong> 비워두면 기본 이름 <strong>"workspace-mcp"</strong>로 생성됩니다.
               </p>
               <input type="text"
                      id="accountIdentifier"
-                     placeholder="예: intenet1, intenet8821 등"
+                     placeholder="예: intenet1, intenet8821 등 (다중 계정인 경우 필수)"
                      style="width: 100%; padding: 10px; border: 2px solid #FF9800; border-radius: 5px; font-size: 14px;">
-              <div style="margin-top: 8px; font-size: 12px; color: #e65100; opacity: 0.9;">
-                💡 비워두면 기본 이름 "workspace-mcp"로 생성됩니다.
+              <div style="margin-top: 8px; font-size: 12px; color: #666; background: #f5f5f5; padding: 8px; border-radius: 4px;">
+                ℹ️ <strong>팁:</strong> 첫 번째 계정이라면 비워두어도 됩니다. 두 번째 계정부터는 반드시 식별자를 입력하세요.
               </div>
             </div>
 
@@ -952,6 +956,11 @@
               <textarea id="mcpConfigDisplay" readonly style="min-height: 200px; background: #f5f5f5; cursor: default; font-size: 12px;"></textarea>
             </div>
 
+            <div style="margin-bottom: 20px; text-align: center;">
+              <button class="btn" onclick="addExtensionToClaudeCode()" id="addExtensionBtn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-size: 15px; padding: 12px 30px;">➡️ Claude Code에 추가</button>
+              <button class="btn-secondary" onclick="showInstalledExtensions()" style="margin-left: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; font-size: 15px; padding: 12px 30px;">📋 설치된 Extension 관리</button>
+            </div>
+
             <div id="userConfigSection" style="display: none; margin-bottom: 20px;">
               <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
                 <h4 style="margin: 0 0 10px 0; color: #1565c0;">⚙️ 환경 변수 설정</h4>
@@ -959,9 +968,6 @@
               </div>
               <div id="userConfigFields" style="background: #f5f5f5; padding: 15px; border-radius: 8px;"></div>
             </div>
-
-            <button class="btn" onclick="addExtensionToClaudeCode()" id="addExtensionBtn">➡️ Claude Code에 추가</button>
-            <button class="btn-secondary" onclick="showInstalledExtensions()" style="margin-left: 10px;">📋 설치된 Extension 관리</button>
           </div>
         </div>
 
@@ -972,6 +978,253 @@
               <!-- Installed extensions will be listed here -->
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Help Tab -->
+      <div id="help-tab" class="tab-content">
+        <h3 style="color: #667eea; margin-bottom: 15px;">📚 도움말 및 사용 가이드</h3>
+
+        <!-- Quick Start Guide -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 10px; margin-bottom: 20px; color: white;">
+          <h4 style="margin: 0 0 15px 0; font-size: 20px;">🚀 빠른 시작 가이드</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; backdrop-filter: blur(10px);">
+              <div style="font-size: 24px; margin-bottom: 8px;">1️⃣</div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Extension 설정</div>
+              <div style="font-size: 13px; opacity: 0.9;">Extension 설치된 서버 설정 탭에서 이메일 및 client_secret.json 업로드</div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; backdrop-filter: blur(10px);">
+              <div style="font-size: 24px; margin-bottom: 8px;">2️⃣</div>
+              <div style="font-weight: bold; margin-bottom: 5px;">포트 자동 감지</div>
+              <div style="font-size: 13px; opacity: 0.9;">🔍 포트 자동 감지 버튼으로 WORKSPACE_MCP_PORT 설정</div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; backdrop-filter: blur(10px);">
+              <div style="font-size: 24px; margin-bottom: 8px;">3️⃣</div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Google 인증</div>
+              <div style="font-size: 13px; opacity: 0.9;">Google 계정 인증 상태 섹션에서 🔐 인증 시작</div>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 8px; backdrop-filter: blur(10px);">
+              <div style="font-size: 24px; margin-bottom: 8px;">4️⃣</div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Claude에서 사용</div>
+              <div style="font-size: 13px; opacity: 0.9;">Claude Code/Desktop에서 MCP 도구 사용 시작!</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Program Overview -->
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #2196F3;">
+          <h4 style="margin: 0 0 15px 0; color: #1565c0;">🎯 프로그램 개요</h4>
+          <p style="color: #666; line-height: 1.8; margin-bottom: 12px;">
+            <strong>Google Workspace MCP 인증 도우미</strong>는 Claude Code와 Claude Desktop에서 Google Workspace MCP Extension을 쉽게 설정하고 인증할 수 있도록 도와주는 Electron 기반 데스크톱 애플리케이션입니다.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
+            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 3px solid #667eea;">
+              <div style="font-weight: bold; color: #667eea; margin-bottom: 8px;">🔐 OAuth 인증 관리</div>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.6;">
+                <li>여러 Google 계정 인증 관리</li>
+                <li>토큰 자동 갱신</li>
+                <li>Web/Desktop App 모두 지원</li>
+              </ul>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 3px solid #764ba2;">
+              <div style="font-weight: bold; color: #764ba2; margin-bottom: 8px;">⚙️ Extension 설정</div>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.6;">
+                <li>Extension 자동 스캔</li>
+                <li>환경 변수 편집</li>
+                <li>포트 자동 감지</li>
+              </ul>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 3px solid #2196F3;">
+              <div style="font-weight: bold; color: #2196F3; margin-bottom: 8px;">📋 JSON 파일 관리</div>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.6;">
+                <li>JSON 뷰어 및 파서</li>
+                <li>MCP 설정 병합</li>
+                <li>Config 파일 편집</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #ffc107;">
+          <h4 style="margin: 0 0 15px 0; color: #856404;">❗ 자주 발생하는 문제</h4>
+
+          <div style="margin-bottom: 20px;">
+            <h5 style="color: #856404; margin-bottom: 10px;">1. 인증 오류: "invalid_client"</h5>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 8px;"><strong>원인:</strong> client_secret.json이 Google Cloud Console과 일치하지 않거나, OAuth Client가 삭제/비활성화됨</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;"><strong>해결:</strong></p>
+            <ol style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>Google Cloud Console에서 OAuth Client ID 상태 확인 (Active여야 함)</li>
+              <li>새로운 client_secret.json 파일 다운로드</li>
+              <li>프로그램의 "Extension 설치된 서버 설정" 탭에서 재업로드</li>
+              <li>"🔍 포트 자동 감지" 클릭 후 저장</li>
+              <li>재인증 시도</li>
+            </ol>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h5 style="color: #856404; margin-bottom: 10px;">2. 포트 불일치 경고</h5>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 8px;"><strong>원인:</strong> WORKSPACE_MCP_PORT와 client_secret.json의 포트가 다름</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;"><strong>해결:</strong></p>
+            <ol style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>"Extension 설치된 서버 설정" > "⚙️ 편집" 클릭</li>
+              <li>"🔍 포트 자동 감지" 버튼 클릭</li>
+              <li>또는 WORKSPACE_MCP_PORT를 수동으로 올바른 포트로 변경</li>
+              <li>"✅ 저장 및 설정 완료" 클릭</li>
+            </ol>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h5 style="color: #856404; margin-bottom: 10px;">3. 토큰 만료</h5>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 8px;"><strong>증상:</strong> "토큰이 만료됨" 메시지 표시</p>
+            <p style="color: #666; font-size: 14px; line-height: 1.6;"><strong>해결:</strong></p>
+            <ul style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>Refresh token이 있는 경우: 자동으로 갱신됨 (추가 조치 불필요)</li>
+              <li>Refresh token이 없는 경우: "🔐 인증 시작" 버튼으로 재인증</li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 style="color: #856404; margin-bottom: 10px;">4. Extension이 스캔되지 않음</h5>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 8px;"><strong>확인 사항:</strong></p>
+            <ol style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>Claude Desktop Extension이 설치되어 있는지 확인<br>
+                  <code style="background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 3px; font-size: 12px;">~/Library/Application Support/Claude/Claude Extensions/</code></li>
+              <li>Extension의 manifest.json 파일이 올바른지 확인</li>
+              <li>프로그램 재시작</li>
+            </ol>
+          </div>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #4CAF50;">
+          <h4 style="margin: 0 0 15px 0; color: #2e7d32;">✅ Google Cloud Console 설정 가이드</h4>
+
+          <div style="margin-bottom: 15px;">
+            <h5 style="color: #2e7d32; margin-bottom: 10px;">1. 프로젝트 생성 및 OAuth 설정</h5>
+            <ol style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>https://console.cloud.google.com 접속</li>
+              <li>새 프로젝트 생성 또는 기존 프로젝트 선택</li>
+              <li>"APIs & Services" > "OAuth consent screen" 설정</li>
+              <li>"APIs & Services" > "Credentials" > "CREATE CREDENTIALS" > "OAuth client ID"</li>
+            </ol>
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <h5 style="color: #2e7d32; margin-bottom: 10px;">2. OAuth Client 타입 선택</h5>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+              <p style="color: #2e7d32; font-weight: bold; margin-bottom: 8px;">Web Application (권장)</p>
+              <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px; overflow-x: auto;">Authorized redirect URIs:
+  - http://localhost:8766/oauth2callback
+  - http://localhost:8765/oauth2callback</pre>
+              <p style="color: #666; font-size: 13px; margin-top: 8px;">✓ 각 계정마다 다른 포트 사용 가능</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 8px;">
+              <p style="color: #2e7d32; font-weight: bold; margin-bottom: 8px;">Desktop Application</p>
+              <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px; font-size: 12px;">Redirect URI: http://localhost (자동 설정)</pre>
+              <p style="color: #666; font-size: 13px; margin-top: 8px;">ℹ️ 동적 포트 자동 처리됨</p>
+            </div>
+          </div>
+
+          <div>
+            <h5 style="color: #2e7d32; margin-bottom: 10px;">3. 필요한 API 활성화</h5>
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">"APIs & Services" > "Library"에서 다음 API를 검색하여 활성화:</p>
+            <ul style="color: #666; font-size: 14px; line-height: 1.8; padding-left: 20px;">
+              <li>Gmail API</li>
+              <li>Google Drive API</li>
+              <li>Google Sheets API</li>
+              <li>Google Docs API</li>
+              <li>Google Calendar API</li>
+              <li>Google Forms API</li>
+              <li>Google Slides API</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="background: #f3e5f5; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #9c27b0;">
+          <h4 style="margin: 0 0 15px 0; color: #6a1b9a;">🔧 설정 파일 위치</h4>
+          <div style="font-family: 'Courier New', monospace; font-size: 13px; line-height: 2;">
+            <p style="color: #666; margin: 5px 0;"><strong style="color: #6a1b9a;">Claude Code:</strong> ~/.claude.json</p>
+            <p style="color: #666; margin: 5px 0;"><strong style="color: #6a1b9a;">Claude Desktop:</strong> ~/Library/Application Support/Claude/claude_desktop_config.json</p>
+            <p style="color: #666; margin: 5px 0;"><strong style="color: #6a1b9a;">OAuth Tokens:</strong> ~/.google_workspace_mcp/credentials/{email}.json</p>
+            <p style="color: #666; margin: 5px 0;"><strong style="color: #6a1b9a;">Client Secrets:</strong> ~/Documents/GitHub/myproduct_v4/google_workspace_mcp/client_secret_{accountId}/</p>
+            <p style="color: #666; margin: 5px 0;"><strong style="color: #6a1b9a;">Port Mapping:</strong> ~/.mcp-workspace/oauth_port_map.json</p>
+          </div>
+        </div>
+
+        <!-- JSON Viewer Features -->
+        <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #4caf50;">
+          <h4 style="margin: 0 0 15px 0; color: #2e7d32;">📋 JSON Viewer 기능 가이드</h4>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+            <div style="background: white; padding: 15px; border-radius: 8px;">
+              <h5 style="color: #2e7d32; margin: 0 0 10px 0; font-size: 15px;">📝 텍스트 입력 / 파일 업로드</h5>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.8;">
+                <li>JSON 텍스트 직접 붙여넣기</li>
+                <li>JSON 파일 드래그 앤 드롭</li>
+                <li>자동 파싱 및 결과 표시</li>
+              </ul>
+            </div>
+
+            <div style="background: white; padding: 15px; border-radius: 8px;">
+              <h5 style="color: #2e7d32; margin: 0 0 10px 0; font-size: 15px;">🔗 MCP Merger</h5>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.8;">
+                <li>기존 MCP 설정에 새 서버 추가</li>
+                <li>서버명 변경 가능</li>
+                <li>병합 결과 다운로드/복사</li>
+              </ul>
+            </div>
+
+            <div style="background: white; padding: 15px; border-radius: 8px;">
+              <h5 style="color: #2e7d32; margin: 0 0 10px 0; font-size: 15px;">⚙️ Claude Config Manager</h5>
+              <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px; line-height: 1.8;">
+                <li>.claude.json 자동 로드</li>
+                <li>MCP 서버 관리</li>
+                <li>Google OAuth 인증 관리</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="background: rgba(46, 125, 50, 0.1); padding: 12px; border-radius: 6px; margin-top: 15px;">
+            <p style="margin: 0; color: #1b5e20; font-size: 13px; line-height: 1.6;">
+              💡 <strong>Tip:</strong> 중첩된 JSON 객체는 자동으로 평탄화되며 (예: parent.child.value),
+              최대 50MB까지의 큰 JSON 파일도 처리할 수 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- Additional Documentation -->
+        <div style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%); padding: 25px; border-radius: 10px; border-left: 5px solid #e91e63; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 10px 0; color: #880e4f; font-size: 18px;">📖 상세 문서 보기</h4>
+          <p style="color: #c2185b; font-size: 14px; line-height: 1.8; margin-bottom: 20px;">
+            더 자세한 설치 방법, 문제 해결 가이드, AI 개발자 문서를 확인하세요.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+            <button onclick="showDocumentation('README.md')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);" onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">
+              📘 README.md<br>
+              <span style="font-size: 12px; font-weight: normal; opacity: 0.95; display: block; margin-top: 5px;">완전한 사용자 가이드</span>
+            </button>
+            <button onclick="showDocumentation('TROUBLESHOOTING.md')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);" onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(240, 147, 251, 0.4)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(240, 147, 251, 0.3)'">
+              🔧 TROUBLESHOOTING<br>
+              <span style="font-size: 12px; font-weight: normal; opacity: 0.95; display: block; margin-top: 5px;">AI를 위한 문제 해결 가이드</span>
+            </button>
+            <button onclick="showDocumentation('CLAUDE.md')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; padding: 15px 20px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);" onmouseover="this.style.transform='translateY(-3px) scale(1.02)'; this.style.boxShadow='0 6px 20px rgba(79, 172, 254, 0.4)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 4px 15px rgba(79, 172, 254, 0.3)'">
+              🤖 CLAUDE.md<br>
+              <span style="font-size: 12px; font-weight: normal; opacity: 0.95; display: block; margin-top: 5px;">AI 개발자 기술 문서</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 25px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 10px; margin-top: 20px;">
+          <p style="color: #666; font-size: 14px; margin-bottom: 8px;">
+            <strong>Google Workspace MCP 인증 도우미</strong>
+          </p>
+          <p style="color: #999; font-size: 13px; margin: 0;">
+            Version 1.0 | Last Updated: 2025-11-12
+          </p>
+          <p style="color: #999; font-size: 12px; margin-top: 10px;">
+            문제가 계속되면 GitHub Issues를 통해 문의해주세요
+          </p>
         </div>
       </div>
 
@@ -1192,6 +1445,8 @@
         document.getElementById('sync-tab').classList.add('active');
       } else if (tab === 'extensions') {
         document.getElementById('extensions-tab').classList.add('active');
+      } else if (tab === 'help') {
+        document.getElementById('help-tab').classList.add('active');
       }
     }
 
@@ -2355,10 +2610,14 @@
         const tokenExpired = status.tokenExpired || false;
         const email = status.email || null;
         const hasEmail = email && email !== 'N/A' && email !== '';
+        const configuredPort = status.configuredPort || null;
+        const detectedPort = status.detectedPort || null;
+        const portMismatch = status.portMismatch || false;
+        const needsPortConfig = status.needsPortConfig || false;
 
-        console.log(`Server: ${serverName}`, { email, hasEmail, isAuthenticated, needsReauth, tokenExpired });
+        console.log(`Server: ${serverName}`, { email, hasEmail, isAuthenticated, needsReauth, tokenExpired, configuredPort, detectedPort, portMismatch });
 
-        let bgColor, textColor, statusIcon, statusText, tokenStatusText = '';
+        let bgColor, textColor, statusIcon, statusText, tokenStatusText = '', portStatusText = '';
 
         if (!hasEmail) {
           // No email configured
@@ -2395,6 +2654,28 @@
           statusText = '인증 필요';
         }
 
+        // Build port status text
+        if (portMismatch) {
+          portStatusText = `
+            <div style="color: #721c24; font-size: 12px; margin-top: 5px; padding: 5px; background: #f8d7da; border-radius: 4px;">
+              ⚠️ <strong>포트 불일치 경고:</strong> 설정된 포트 ${configuredPort}가 client_secret.json의 포트 ${detectedPort}와 다릅니다.
+              <br><span style="font-size: 11px;">WORKSPACE_MCP_PORT를 ${detectedPort}로 변경하세요.</span>
+            </div>
+          `;
+        } else if (needsPortConfig && detectedPort) {
+          portStatusText = `
+            <div style="color: #856404; font-size: 12px; margin-top: 5px; padding: 5px; background: #fff3cd; border-radius: 4px;">
+              ℹ️ <strong>포트 미설정:</strong> WORKSPACE_MCP_PORT 환경변수를 추가하세요 (권장 포트: ${detectedPort})
+            </div>
+          `;
+        } else if (configuredPort && detectedPort && configuredPort === detectedPort) {
+          portStatusText = `
+            <div style="color: #155724; font-size: 11px; margin-top: 3px;">
+              🔌 OAuth Port: ${configuredPort} ✓
+            </div>
+          `;
+        }
+
         html += `
           <div style="background: ${bgColor}; padding: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: space-between;">
             <div style="flex: 1;">
@@ -2409,6 +2690,15 @@
                 📧 ${hasEmail ? escapeHtml(email) : 'N/A'}
                 ${!hasEmail ? '<span style="color: #999; font-style: italic;"> - Config에서 user_google_email 환경변수를 추가하세요</span>' : ''}
               </div>
+              ${!isAuthenticated && hasEmail ? `
+                <div style="background: rgba(255, 243, 205, 0.5); padding: 8px; border-radius: 4px; margin-top: 8px; border-left: 3px solid #ffc107;">
+                  <p style="margin: 0; color: #856404; font-size: 12px; line-height: 1.5;">
+                    ⚠️ <strong>브라우저</strong>에서 인증을 완료해주세요<br>
+                    <span style="font-size: 11px; color: #666;">인증은 한 번만 하면 모든 Claude 대화창에서 사용 가능합니다</span>
+                  </p>
+                </div>
+              ` : ''}
+              ${portStatusText}
             </div>
             <div style="display: flex; gap: 8px;">
               ${!hasEmail ? `
@@ -2446,21 +2736,85 @@
     }
 
     async function addEmailAndAuth(serverName) {
-      // Prompt for email
-      const email = prompt(`${serverName} 서버의 Google 계정 이메일을 입력하세요:`, '');
+      console.log('🔵 addEmailAndAuth 호출됨:', serverName);
 
-      if (!email) {
-        return; // User cancelled
-      }
+      // Create custom modal for email input instead of prompt()
+      const modalHtml = `
+        <div id="emailModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 400px;">
+            <h3 style="margin-top: 0; color: #333;">📧 Google 계정 이메일 입력</h3>
+            <p style="color: #666; margin-bottom: 20px;">서버: <strong>${escapeHtml(serverName)}</strong></p>
+            <input type="email" id="emailInput" placeholder="example@gmail.com"
+              style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 14px; box-sizing: border-box; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+              <button id="cancelEmailBtn" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">취소</button>
+              <button id="submitEmailBtn" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">확인</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      return new Promise((resolve) => {
+        const modal = document.getElementById('emailModal');
+        const input = document.getElementById('emailInput');
+        const submitBtn = document.getElementById('submitEmailBtn');
+        const cancelBtn = document.getElementById('cancelEmailBtn');
+
+        // Focus input
+        input.focus();
+
+        // Handle submit
+        const handleSubmit = () => {
+          const email = input.value.trim();
+          console.log('🔵 입력된 이메일:', email);
+          modal.remove();
+          resolve(email);
+        };
+
+        // Handle cancel
+        const handleCancel = () => {
+          console.log('🔵 이메일 입력 취소됨');
+          modal.remove();
+          resolve(null);
+        };
+
+        submitBtn.addEventListener('click', handleSubmit);
+        cancelBtn.addEventListener('click', handleCancel);
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') handleSubmit();
+        });
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) handleCancel();
+        });
+      }).then(email => {
+        if (!email) {
+          return; // User cancelled
+        }
+
+        return processEmailAuth(email, serverName);
+      });
+    }
+
+    async function processEmailAuth(email, serverName) {
+      console.log('🔵 processEmailAuth 시작:', { email, serverName });
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        alert('올바른 이메일 형식이 아닙니다.');
+        showError('올바른 이메일 형식이 아닙니다.');
         return;
       }
 
+      console.log('🔵 Claude Config 확인:', {
+        hasData: !!claudeConfigData,
+        hasPath: !!claudeConfigPath,
+        path: claudeConfigPath
+      });
+
       if (!claudeConfigData || !claudeConfigPath) {
+        console.error('❌ Claude Config가 없습니다');
         showError('Claude Config를 먼저 불러오세요');
         return;
       }
@@ -2474,8 +2828,18 @@
           key.match(/^[A-Z]:\\Users\\[^\\]+$/)
         );
 
+        console.log('🔵 홈 디렉토리 찾기:', {
+          homeDir,
+          hasProject: !!projects[homeDir],
+          hasMcpServers: !!(projects[homeDir] && projects[homeDir].mcpServers),
+          hasServer: !!(projects[homeDir] && projects[homeDir].mcpServers && projects[homeDir].mcpServers[serverName]),
+          serverName
+        });
+
+        // If server doesn't exist in config, we need to add it first
         if (!homeDir || !projects[homeDir] || !projects[homeDir].mcpServers || !projects[homeDir].mcpServers[serverName]) {
-          showError('서버를 찾을 수 없습니다');
+          console.log('🔵 서버가 Config에 없습니다. Extensions 탭에서 먼저 추가해야 합니다.');
+          showError('먼저 Extensions 탭에서 이 Extension을 "➕ Add to MCP Config" 버튼으로 추가한 후, 다시 시도하세요.');
           return;
         }
 
@@ -2484,6 +2848,37 @@
           projects[homeDir].mcpServers[serverName].env = {};
         }
         projects[homeDir].mcpServers[serverName].env.USER_GOOGLE_EMAIL = email;
+
+        // Try to auto-detect and set WORKSPACE_MCP_PORT from saved client_secret
+        console.log('🔵 포트 자동 감지 시도 중...');
+        try {
+          // Extract accountId from serverName (e.g., "workspace-mcp-workspace-intenet1" -> "intenet1")
+          const accountIdMatch = serverName.match(/workspace-mcp-workspace-(.+)$/);
+          if (accountIdMatch) {
+            const accountId = accountIdMatch[1];
+            console.log('🔵 accountId 추출:', accountId);
+
+            // Check for saved client_secret file
+            const checkPortResponse = await fetch('/api/get-oauth-port', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ accountId })
+            });
+
+            if (checkPortResponse.ok) {
+              const portData = await checkPortResponse.json();
+              if (portData.success && portData.port) {
+                console.log('🔵 포트 자동 감지 성공:', portData.port);
+                projects[homeDir].mcpServers[serverName].env.WORKSPACE_MCP_PORT = portData.port.toString();
+              } else {
+                console.log('🔵 포트 자동 감지 실패, 기본값 사용');
+              }
+            }
+          }
+        } catch (portError) {
+          console.log('🔵 포트 자동 감지 오류 (무시):', portError.message);
+          // Continue even if port detection fails
+        }
 
         // Save updated config
         if (!window.electronAPI || !window.electronAPI.saveClaudeConfig) {
@@ -3886,8 +4281,16 @@
       html += '</div>';
 
       extensions.forEach((ext, index) => {
-        html += '<div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; cursor: pointer; transition: all 0.3s;" onclick="selectExtension(' + index + ')" onmouseover="this.style.borderColor=\'#667eea\'" onmouseout="this.style.borderColor=\'#e0e0e0\'">';
-        html += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">';
+        const extId = 'ext-' + index;
+        const hasEnv = ext.server && ext.server.mcp_config && ext.server.mcp_config.env;
+        const envVars = hasEnv ? ext.server.mcp_config.env : {};
+
+        html += '<div style="margin-bottom: 15px; padding: 15px; background: white; border-radius: 8px; border: 2px solid #e0e0e0; transition: all 0.3s; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;" onclick="selectExtension(' + index + ')" onmouseover="this.style.borderColor=\'#667eea\'; this.style.boxShadow=\'0 4px 12px rgba(102, 126, 234, 0.2)\'; this.style.transform=\'translateY(-2px)\';" onmouseout="this.style.borderColor=\'#e0e0e0\'; this.style.boxShadow=\'0 2px 4px rgba(0,0,0,0.05)\'; this.style.transform=\'translateY(0)\';">';
+
+        // Add click hint at top right
+        html += '<div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; opacity: 0.8;">👆 클릭하여 선택</div>';
+
+        html += '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; margin-top: 25px;">';
         html += '<div style="display: flex; align-items: center; gap: 8px;">';
         html += '<h4 style="margin: 0; color: #667eea;">' + escapeHtml(ext.displayName) + '</h4>';
         html += '<span style="background: #4CAF50; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold;">Extension</span>';
@@ -3902,11 +4305,271 @@
           html += '<p style="margin: 5px 0; color: #999; font-size: 12px;">제공 도구: ' + ext.tools.length + '개</p>';
         }
         html += '<p style="margin: 5px 0; color: #4CAF50; font-size: 12px; font-weight: bold;">✓ Claude Desktop에서 실행 중</p>';
+
+        // Show environment variables if they exist
+        if (hasEnv && Object.keys(envVars).length > 0) {
+          html += '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">';
+          html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">';
+          html += '<button onclick="toggleEnvVars(\'' + extId + '\'); event.stopPropagation();" style="background: #667eea; color: white; border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px;">▼ 환경 변수 보기</button>';
+          html += '<button onclick="editEnvVars(\'' + ext.name + '\', ' + index + '); event.stopPropagation();" style="background: #ffc107; color: #333; border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;">✏️ 편집</button>';
+          html += '</div>';
+          html += '<div id="' + extId + '-env" style="display: none; background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 11px;">';
+          Object.keys(envVars).forEach(key => {
+            const value = envVars[key];
+            html += '<div style="margin: 3px 0;"><strong>' + escapeHtml(key) + ':</strong> ' + escapeHtml(String(value)) + '</div>';
+          });
+          html += '</div>';
+          html += '</div>';
+        } else {
+          html += '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">';
+          html += '<button onclick="editEnvVars(\'' + ext.name + '\', ' + index + '); event.stopPropagation();" style="background: #667eea; color: white; border: none; padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold;">+ 환경 변수 추가</button>';
+          html += '</div>';
+        }
+
         html += '</div>';
       });
 
       html += '</div>';
       listDiv.innerHTML = html;
+    }
+
+    function toggleEnvVars(extId) {
+      const envDiv = document.getElementById(extId + '-env');
+      if (envDiv) {
+        if (envDiv.style.display === 'none') {
+          envDiv.style.display = 'block';
+        } else {
+          envDiv.style.display = 'none';
+        }
+      }
+    }
+
+    async function editEnvVars(serverName, extIndex) {
+      const ext = scannedExtensions[extIndex];
+      if (!ext) {
+        showError('Extension을 찾을 수 없습니다');
+        return;
+      }
+
+      // Get current environment variables
+      const currentEnv = (ext.server && ext.server.mcp_config && ext.server.mcp_config.env) || {};
+
+      // Get user_config fields from extension manifest
+      const userConfig = ext.userConfig || {};
+
+      // Merge: All user_config fields + any additional env vars not in user_config
+      const allEnvKeys = new Set([...Object.keys(userConfig), ...Object.keys(currentEnv)]);
+
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+
+      let envFieldsHtml = '';
+
+      // First, show all user_config fields (with descriptions)
+      Object.keys(userConfig).forEach(key => {
+        const field = userConfig[key];
+        const currentValue = currentEnv[key] || '';
+        const isRequired = field.required ? ' <span style="color: red;">*</span>' : '';
+        const description = field.description ? `<div style="font-size: 11px; color: #666; margin-top: 3px;">${escapeHtml(field.description)}</div>` : '';
+
+        envFieldsHtml += `
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #667eea;">${escapeHtml(field.title || key)}${isRequired}</label>
+            ${description}
+            <input type="${field.type === 'number' ? 'number' : 'text'}"
+                   id="edit_env_${escapeHtml(key)}"
+                   value="${escapeHtml(String(currentValue))}"
+                   placeholder="${escapeHtml(field.description || '')}"
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+          </div>
+        `;
+      });
+
+      // Then, show additional env vars not defined in user_config
+      Object.keys(currentEnv).forEach(key => {
+        if (!userConfig[key]) {
+          const value = currentEnv[key];
+          envFieldsHtml += `
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #888;">${escapeHtml(key)} <span style="font-size: 11px; color: #999;">(추가 변수)</span></label>
+              <input type="text" id="edit_env_${escapeHtml(key)}" value="${escapeHtml(String(value))}"
+                     style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+            </div>
+          `;
+        }
+      });
+
+      dialog.innerHTML = `
+        <div style="background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #667eea;">환경 변수 편집</h3>
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+          </div>
+          <p style="color: #666; font-size: 13px; margin-bottom: 15px;">서버: <strong>${escapeHtml(serverName)}</strong></p>
+
+          <div id="envFieldsContainer">
+            ${envFieldsHtml}
+          </div>
+
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <button onclick="addNewEnvField()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px; margin-bottom: 15px;">
+              + 새 환경 변수 추가
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+              취소
+            </button>
+            <button onclick="saveEnvVars('${escapeHtml(serverName)}', ${extIndex})" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+              저장
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(dialog);
+
+      // Store dialog reference for later use
+      window.currentEnvDialog = dialog;
+    }
+
+    function addNewEnvField() {
+      const container = document.getElementById('envFieldsContainer');
+      if (!container) {
+        console.error('envFieldsContainer not found');
+        return;
+      }
+
+      // Create inline input dialog
+      const dialogHtml = `
+        <div id="newEnvDialog" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10001;">
+          <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 400px;">
+            <h3 style="margin-top: 0; color: #667eea;">새 환경 변수 추가</h3>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">변수 이름</label>
+              <input type="text" id="newEnvKey" placeholder="예: WORKSPACE_MCP_PORT"
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">값</label>
+              <input type="text" id="newEnvValue" placeholder="예: 8767"
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+              <button onclick="document.getElementById('newEnvDialog').remove()"
+                      style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                취소
+              </button>
+              <button onclick="confirmAddNewEnvField()"
+                      style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                추가
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', dialogHtml);
+
+      // Focus on key input
+      setTimeout(() => {
+        document.getElementById('newEnvKey').focus();
+      }, 100);
+    }
+
+    function confirmAddNewEnvField() {
+      const keyInput = document.getElementById('newEnvKey');
+      const valueInput = document.getElementById('newEnvValue');
+      const container = document.getElementById('envFieldsContainer');
+
+      if (!keyInput || !valueInput || !container) return;
+
+      const key = keyInput.value.trim();
+      const value = valueInput.value.trim();
+
+      if (key === '') {
+        alert('환경 변수 이름을 입력하세요.');
+        keyInput.focus();
+        return;
+      }
+
+      // Check if already exists
+      if (document.getElementById('edit_env_' + key)) {
+        alert('이미 존재하는 환경 변수입니다.');
+        keyInput.focus();
+        return;
+      }
+
+      const newField = document.createElement('div');
+      newField.style.marginBottom = '12px';
+      newField.innerHTML = `
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #667eea;">${escapeHtml(key)}</label>
+        <div style="display: flex; gap: 5px;">
+          <input type="text" id="edit_env_${escapeHtml(key)}" value="${escapeHtml(value)}" placeholder="값을 입력하세요"
+                 style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+          <button onclick="this.closest('div').parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">삭제</button>
+        </div>
+      `;
+      container.appendChild(newField);
+
+      // Close dialog
+      document.getElementById('newEnvDialog').remove();
+
+      // Scroll to new field
+      newField.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function saveEnvVars(serverName, extIndex) {
+      const ext = scannedExtensions[extIndex];
+      if (!ext) {
+        showError('Extension을 찾을 수 없습니다');
+        return;
+      }
+
+      // Collect all environment variable values
+      const envVars = {};
+      const inputs = document.querySelectorAll('[id^="edit_env_"]');
+      inputs.forEach(input => {
+        const key = input.id.replace('edit_env_', '');
+        const value = input.value.trim();
+        if (value) {
+          envVars[key] = value;
+        }
+      });
+
+      try {
+        // Call API to update environment variables
+        const response = await fetch('/api/update-server-env', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serverName: serverName,
+            envVars: envVars,
+            configType: 'desktop' // Extensions are in Claude Desktop config
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess('환경 변수가 저장되었습니다');
+
+          // Close dialog
+          if (window.currentEnvDialog) {
+            window.currentEnvDialog.remove();
+            window.currentEnvDialog = null;
+          }
+
+          // Refresh extension list
+          await scanExtensions();
+        } else {
+          showError('저장 실패: ' + result.error);
+        }
+      } catch (error) {
+        showError('오류: ' + error.message);
+      }
     }
 
     async function selectExtension(index) {
@@ -3926,13 +4589,22 @@
 
       // Convert extension to MCP config without credentials sharing
       try {
+        // Prepare request payload
+        const requestPayload = {
+          extension: selectedExtension,
+          shareCredentials: false // Do not share credentials with Claude Desktop
+        };
+
+        // If we have uploaded client_secret.json, include it for port extraction
+        if (loadedEnvData && loadedEnvData._isClientSecret && loadedEnvData._originalData) {
+          requestPayload.uploadedClientSecret = loadedEnvData._originalData;
+          console.log('✓ Including uploaded client_secret.json for automatic port detection');
+        }
+
         const response = await fetch('/api/extension-to-mcp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            extension: selectedExtension,
-            shareCredentials: false // Do not share credentials with Claude Desktop
-          })
+          body: JSON.stringify(requestPayload)
         });
 
         const result = await response.json();
@@ -3944,6 +4616,51 @@
           document.getElementById('mcpConfigDisplay').value = JSON.stringify({
             [selectedExtension.name]: generatedMcpConfig
           }, null, 2);
+
+          // Show port auto-configuration message if applicable
+          const isWorkspaceMcp = selectedExtension.id && selectedExtension.id.includes('workspace-mcp');
+
+          if (isWorkspaceMcp) {
+            // Remove any existing port messages first to avoid duplicates
+            const existingMessages = document.querySelectorAll('[data-port-message="true"]');
+            existingMessages.forEach(msg => msg.remove());
+
+            // Only show message if port detection was actually attempted
+            // (i.e., if uploadedClientSecret was provided or portSource indicates detection was tried)
+            const portDetectionAttempted = result.portAutoConfigured || result.portSource || (loadedEnvData && loadedEnvData._isClientSecret);
+
+            if (portDetectionAttempted) {
+              const portMessage = document.createElement('div');
+              portMessage.setAttribute('data-port-message', 'true'); // Mark for easy removal
+
+              if (result.portAutoConfigured && result.detectedPort) {
+                // Success: Port auto-configured
+                portMessage.style.cssText = 'margin: 10px 0; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; color: #155724; font-size: 13px;';
+
+                let sourceText = '';
+                if (result.portSource === 'uploaded_client_secret') {
+                  sourceText = ' (업로드된 client_secret.json의 redirect_uri에서 추출)';
+                } else if (result.portSource === 'oauth_port_map') {
+                  sourceText = ' (저장된 포트 매핑에서 자동 감지)';
+                }
+
+                portMessage.innerHTML = `
+                  ✓ <strong>OAuth 포트 자동 설정:</strong> WORKSPACE_MCP_PORT가 ${result.detectedPort}로 자동 설정되었습니다${sourceText}.
+                  <br><span style="font-size: 11px; color: #666;">이제 인증 시 포트 불일치 문제가 발생하지 않습니다.</span>
+                `;
+              } else {
+                // Warning: Port auto-detection failed (only show if detection was actually attempted)
+                portMessage.style.cssText = 'margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404; font-size: 13px;';
+                portMessage.innerHTML = `
+                  ⚠️ <strong>포트 자동 감지 실패:</strong> 업로드된 client_secret.json이나 저장된 포트 매핑에서 포트를 찾을 수 없습니다.
+                  <br><span style="font-size: 11px; color: #856404;">아래 "WORKSPACE_MCP_PORT" 필드에 client_secret.json의 redirect_uri 포트를 직접 입력하세요.</span>
+                  <br><span style="font-size: 11px; color: #856404;">예: redirect_uri가 "http://localhost:8766/oauth2callback"이면 <strong>8766</strong> 입력</span>
+                `;
+              }
+
+              document.getElementById('mcpConfigDisplay').parentNode.insertBefore(portMessage, document.getElementById('mcpConfigDisplay'));
+            }
+          }
 
           // Show user config section if needed
           if (result.requiresUserConfig) {
@@ -3992,6 +4709,16 @@
         }
         if (field.description) {
           html += '<p style="margin: 0 0 8px 0; color: #999; font-size: 12px;">' + escapeHtml(field.description) + '</p>';
+        }
+
+        // Add special info box for WORKSPACE_MCP_PORT
+        if (key === 'WORKSPACE_MCP_PORT') {
+          html += '<div style="margin: 8px 0; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px;">';
+          html += '<p style="margin: 0; font-size: 11px; color: #1565c0;">';
+          html += '<strong>💡 참고:</strong> 위에 포트 자동 감지 결과가 표시됩니다. ';
+          html += '성공 시 이 필드를 비워두면 자동으로 설정됩니다.';
+          html += '</p>';
+          html += '</div>';
         }
 
         // Add input field based on type with onchange event
@@ -4087,7 +4814,9 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 clientSecretData: loadedEnvData._originalData,
-                accountId: accountIdentifier || 'default'
+                accountId: accountIdentifier || 'default',
+                serverName: serverName,
+                autoAddPort: true  // Enable auto-add port feature
               })
             });
 
@@ -4095,6 +4824,13 @@
 
             if (saveResult.success) {
               console.log('Client secret saved to:', saveResult.path);
+              if (saveResult.detectedPort) {
+                console.log('Detected OAuth port:', saveResult.detectedPort);
+              }
+              if (saveResult.portAddedToConfig) {
+                console.log('✅ Port automatically added to .claude.json');
+                showSuccess(`포트 ${saveResult.detectedPort}가 자동으로 환경변수에 추가되었습니다!`);
+              }
               // Update GOOGLE_CLIENT_SECRET_PATH with the saved file path
               loadedEnvData.GOOGLE_CLIENT_SECRET_PATH = saveResult.path;
             } else {
@@ -4297,6 +5033,10 @@
     function displayInstalledExtensions(extensions, configPath) {
       const listDiv = document.getElementById('installedExtensionsList');
 
+      // Store for later use by edit function
+      currentInstalledExtensions = extensions;
+      currentConfigPath = configPath;
+
       if (extensions.length === 0) {
         listDiv.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">설치된 Extension이 없습니다.</p>';
         return;
@@ -4322,13 +5062,16 @@
         }
 
         html += '</div>';
+        html += '<div style="display: flex; gap: 8px;">';
+        html += '<button onclick="editInstalledExtensionEnv(\'' + escapeHtml(ext.name) + '\', ' + index + ', \'' + escapeHtml(configPath) + '\')" style="background: #ffc107; color: #333; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: background 0.3s;" onmouseover="this.style.background=\'#ffb300\'" onmouseout="this.style.background=\'#ffc107\'">✏️ 편집</button>';
         html += '<button onclick="removeExtension(\'' + escapeHtml(ext.name) + '\', \'' + escapeHtml(configPath) + '\')" style="background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 13px; transition: background 0.3s;" onmouseover="this.style.background=\'#d32f2f\'" onmouseout="this.style.background=\'#f44336\'">🗑️ 제거</button>';
+        html += '</div>';
         html += '</div>';
 
         // Show environment variables if any
         if (ext.config.env && Object.keys(ext.config.env).length > 0) {
           html += '<details style="margin-top: 10px;">';
-          html += '<summary style="cursor: pointer; color: #667eea; font-size: 13px; font-weight: bold;">환경 변수 보기</summary>';
+          html += '<summary style="cursor: pointer; color: #667eea; font-size: 13px; font-weight: bold;">▼ 환경 변수 보기</summary>';
           html += '<div style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 5px; font-size: 12px;">';
           Object.keys(ext.config.env).forEach(key => {
             const value = ext.config.env[key];
@@ -4337,6 +5080,10 @@
           });
           html += '</div>';
           html += '</details>';
+        } else {
+          html += '<div style="margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; border-left: 3px solid #ffc107;">';
+          html += '<p style="margin: 0; color: #856404; font-size: 12px;">ℹ️ 환경 변수가 설정되지 않았습니다. "편집" 버튼을 클릭하여 추가하세요.</p>';
+          html += '</div>';
         }
 
         html += '</div>';
@@ -4415,20 +5162,420 @@
         showError('오류: ' + error.message);
       }
     }
+
+    // Global variable to store current extensions data
+    let currentInstalledExtensions = [];
+    let currentConfigPath = '';
+
+    async function editInstalledExtensionEnv(serverName, extIndex, configPath) {
+      // Store current data for later use
+      if (!currentInstalledExtensions[extIndex]) {
+        showError('Extension 정보를 찾을 수 없습니다');
+        return;
+      }
+
+      const ext = currentInstalledExtensions[extIndex];
+      const currentEnv = ext.config.env || {};
+
+      // Create dialog
+      const dialog = document.createElement('div');
+      dialog.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+
+      let envFieldsHtml = '';
+      Object.keys(currentEnv).forEach(key => {
+        const value = currentEnv[key];
+        envFieldsHtml += `
+          <div style="margin-bottom: 12px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #667eea;">${escapeHtml(key)}</label>
+            <input type="text" id="edit_installed_env_${escapeHtml(key)}" value="${escapeHtml(String(value))}"
+                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+          </div>
+        `;
+      });
+
+      dialog.innerHTML = `
+        <div style="background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #667eea;">환경 변수 편집</h3>
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">×</button>
+          </div>
+          <p style="color: #666; font-size: 13px; margin-bottom: 15px;">서버: <strong>${escapeHtml(serverName)}</strong></p>
+
+          <div id="installedEnvFieldsContainer">
+            ${envFieldsHtml}
+          </div>
+
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+              <button onclick="addNewInstalledEnvField()" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                + 새 환경 변수 추가
+              </button>
+              <button onclick="autoDetectPort('${escapeHtml(serverName)}')" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-size: 13px;">
+                🔍 포트 자동 감지
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+              취소
+            </button>
+            <button onclick="saveInstalledExtensionEnv('${escapeHtml(serverName)}', '${escapeHtml(configPath)}')" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+              저장
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(dialog);
+      window.currentInstalledEnvDialog = dialog;
+    }
+
+    function addNewInstalledEnvField() {
+      const container = document.getElementById('installedEnvFieldsContainer');
+      if (!container) {
+        console.error('installedEnvFieldsContainer not found');
+        return;
+      }
+
+      // Create inline input dialog
+      const dialogHtml = `
+        <div id="newInstalledEnvDialog" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10002;">
+          <div style="background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 400px;">
+            <h3 style="margin-top: 0; color: #667eea;">새 환경 변수 추가</h3>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">변수 이름</label>
+              <input type="text" id="newInstalledEnvKey" placeholder="예: WORKSPACE_MCP_PORT"
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">값</label>
+              <input type="text" id="newInstalledEnvValue" placeholder="예: 8767"
+                     style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+              <button onclick="document.getElementById('newInstalledEnvDialog').remove()"
+                      style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                취소
+              </button>
+              <button onclick="confirmAddNewInstalledEnvField()"
+                      style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                추가
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', dialogHtml);
+
+      // Focus on key input
+      setTimeout(() => {
+        document.getElementById('newInstalledEnvKey').focus();
+      }, 100);
+    }
+
+    function confirmAddNewInstalledEnvField() {
+      const keyInput = document.getElementById('newInstalledEnvKey');
+      const valueInput = document.getElementById('newInstalledEnvValue');
+      const container = document.getElementById('installedEnvFieldsContainer');
+
+      if (!keyInput || !valueInput || !container) return;
+
+      const key = keyInput.value.trim();
+      const value = valueInput.value.trim();
+
+      if (key === '') {
+        alert('환경 변수 이름을 입력하세요.');
+        keyInput.focus();
+        return;
+      }
+
+      // Check if already exists
+      if (document.getElementById('edit_installed_env_' + key)) {
+        alert('이미 존재하는 환경 변수입니다.');
+        keyInput.focus();
+        return;
+      }
+
+      const newField = document.createElement('div');
+      newField.style.marginBottom = '12px';
+      newField.innerHTML = `
+        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #667eea;">${escapeHtml(key)}</label>
+        <div style="display: flex; gap: 5px;">
+          <input type="text" id="edit_installed_env_${escapeHtml(key)}" value="${escapeHtml(value)}" placeholder="값을 입력하세요"
+                 style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+          <button onclick="this.closest('div').parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">삭제</button>
+        </div>
+      `;
+      container.appendChild(newField);
+
+      // Close dialog
+      document.getElementById('newInstalledEnvDialog').remove();
+
+      // Scroll to new field
+      newField.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function autoDetectPort(serverName) {
+      try {
+        // Get email from current env if available
+        const emailInput = document.getElementById('edit_installed_env_USER_GOOGLE_EMAIL');
+        const email = emailInput ? emailInput.value.trim() : null;
+
+        console.log('Auto-detecting port for:', { serverName, email });
+
+        // Call API to detect port
+        const response = await fetch('/api/detect-port-from-extension', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serverName: serverName,
+            email: email
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.port) {
+          console.log('Detected port:', result.port);
+
+          // Check if WORKSPACE_MCP_PORT field exists
+          const portInput = document.getElementById('edit_installed_env_WORKSPACE_MCP_PORT');
+
+          if (portInput) {
+            // Update existing field
+            portInput.value = String(result.port);
+            portInput.style.background = '#d4edda'; // Green highlight
+            setTimeout(() => {
+              portInput.style.background = '';
+            }, 2000);
+
+            showSuccess(`포트 ${result.port}가 자동으로 감지되어 입력되었습니다!`);
+          } else {
+            // Create new field
+            const container = document.getElementById('installedEnvFieldsContainer');
+            if (container) {
+              const newField = document.createElement('div');
+              newField.style.marginBottom = '12px';
+              newField.innerHTML = `
+                <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #667eea;">WORKSPACE_MCP_PORT</label>
+                <div style="display: flex; gap: 5px;">
+                  <input type="text" id="edit_installed_env_WORKSPACE_MCP_PORT" value="${result.port}" placeholder="값을 입력하세요"
+                         style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; background: #d4edda;">
+                  <button onclick="this.closest('div').parentElement.remove()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">삭제</button>
+                </div>
+              `;
+              container.appendChild(newField);
+
+              // Scroll to new field
+              newField.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+              // Remove highlight after 2 seconds
+              setTimeout(() => {
+                const input = document.getElementById('edit_installed_env_WORKSPACE_MCP_PORT');
+                if (input) {
+                  input.style.background = '';
+                }
+              }, 2000);
+
+              showSuccess(`포트 ${result.port}가 자동으로 감지되어 추가되었습니다!`);
+            }
+          }
+        } else {
+          showError(result.error || '포트를 감지할 수 없습니다. client_secret.json 파일을 확인해주세요.');
+          if (result.searchedPaths) {
+            console.log('Searched paths:', result.searchedPaths);
+          }
+        }
+      } catch (error) {
+        console.error('Error auto-detecting port:', error);
+        showError('포트 감지 오류: ' + error.message);
+      }
+    }
+
+    async function saveInstalledExtensionEnv(serverName, configPath) {
+      // Collect all environment variable values
+      const envVars = {};
+      const inputs = document.querySelectorAll('[id^="edit_installed_env_"]');
+      inputs.forEach(input => {
+        const key = input.id.replace('edit_installed_env_', '');
+        const value = input.value.trim();
+        if (value) {
+          envVars[key] = value;
+        }
+      });
+
+      try {
+        // Call API to update environment variables (Claude Code config)
+        const response = await fetch('/api/update-server-env', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serverName: serverName,
+            envVars: envVars,
+            configType: 'code' // Claude Code config
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess('환경 변수가 저장되었습니다');
+
+          // Close dialog
+          if (window.currentInstalledEnvDialog) {
+            window.currentInstalledEnvDialog.remove();
+            window.currentInstalledEnvDialog = null;
+          }
+
+          // Refresh the list
+          showInstalledExtensions();
+        } else {
+          showError('저장 실패: ' + result.error);
+        }
+      } catch (error) {
+        showError('오류: ' + error.message);
+      }
+    }
   </script>
 
   <!-- External Link Confirmation Dialog -->
   <div id="externalLinkOverlay" class="external-link-overlay">
     <div class="external-link-dialog">
-      <h3>Open external link</h3>
-      <p>You're leaving Claude to visit an external link:</p>
+      <h3>🔐 Google 계정 인증</h3>
+      <p style="margin-bottom: 10px;">브라우저에서 Google 계정 인증을 완료해주세요:</p>
+      <div style="background: #fff3cd; padding: 12px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+        <p style="margin: 0; color: #856404; font-size: 13px;">
+          ⚠️ <strong>중요:</strong> Electron 앱이 아닌 <strong>브라우저</strong>에서 인증을 완료해야 합니다.
+        </p>
+        <p style="margin: 8px 0 0 0; color: #856404; font-size: 12px;">
+          인증 후 토큰은 로컬 시스템에 저장되며, 이후부터는 앱에서도 사용할 수 있습니다.
+        </p>
+      </div>
       <div id="externalLinkUrl" class="external-link-url"></div>
       <div class="external-link-buttons">
-        <button class="external-link-button cancel" onclick="closeExternalLinkDialog()">Cancel</button>
-        <button class="external-link-button open" onclick="confirmOpenExternalLink()">Open link</button>
+        <button class="external-link-button cancel" onclick="closeExternalLinkDialog()">취소</button>
+        <button class="external-link-button open" onclick="confirmOpenExternalLink()">브라우저에서 인증 시작</button>
       </div>
     </div>
   </div>
+
+  <!-- Documentation Modal -->
+  <div id="documentationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 10000; overflow: auto;">
+    <div style="position: relative; max-width: 900px; margin: 40px auto; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px 30px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+        <h2 id="documentationTitle" style="color: white; margin: 0; font-size: 20px;"></h2>
+        <button onclick="closeDocumentation()" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; font-size: 24px; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
+          ×
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div id="documentationContent" style="padding: 30px; max-height: calc(100vh - 200px); overflow-y: auto; line-height: 1.8; color: #333;">
+        <!-- Markdown content will be rendered here -->
+      </div>
+
+      <!-- Footer -->
+      <div style="background: #f8f9fa; padding: 15px 30px; border-radius: 0 0 12px 12px; text-align: right; border-top: 1px solid #e0e0e0;">
+        <button onclick="closeDocumentation()" style="background: #667eea; color: white; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s;">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Documentation viewer functions
+    function showDocumentation(filename) {
+      fetch(`/api/docs/${filename}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const titles = {
+              'README.md': '📘 사용자 가이드',
+              'TROUBLESHOOTING.md': '🔧 문제 해결 가이드',
+              'CLAUDE.md': '🤖 AI 개발자 문서'
+            };
+
+            document.getElementById('documentationTitle').textContent = titles[filename] || filename;
+            document.getElementById('documentationContent').innerHTML = convertMarkdownToHTML(data.content);
+            document.getElementById('documentationModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+          } else {
+            alert('문서를 불러올 수 없습니다: ' + data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading documentation:', error);
+          alert('문서 로드 중 오류가 발생했습니다.');
+        });
+    }
+
+    function closeDocumentation() {
+      document.getElementById('documentationModal').style.display = 'none';
+      document.body.style.overflow = 'auto'; // Restore scrolling
+    }
+
+    function convertMarkdownToHTML(markdown) {
+      let html = markdown;
+
+      // Headers
+      html = html.replace(/^### (.*$)/gim, '<h3 style="color: #667eea; margin-top: 30px; margin-bottom: 15px; font-size: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2 style="color: #764ba2; margin-top: 35px; margin-bottom: 20px; font-size: 24px; border-bottom: 3px solid #667eea; padding-bottom: 12px;">$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1 style="color: #333; margin-top: 40px; margin-bottom: 25px; font-size: 32px; font-weight: bold;">$1</h1>');
+
+      // Bold
+      html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong style="color: #e91e63;">$1</strong>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color: #333;">$1</strong>');
+
+      // Italic
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      // Code blocks
+      html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre style="background: #f5f5f5; padding: 15px; border-radius: 8px; overflow-x: auto; border-left: 4px solid #667eea; margin: 15px 0;"><code style="font-family: \'Monaco\', \'Courier New\', monospace; font-size: 13px; color: #333;">$2</code></pre>');
+
+      // Inline code
+      html = html.replace(/`(.+?)`/g, '<code style="background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: \'Monaco\', \'Courier New\', monospace; font-size: 13px; color: #d63384;">$1</code>');
+
+      // Links
+      html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: none; border-bottom: 1px solid #667eea;">$1</a>');
+
+      // Unordered lists
+      html = html.replace(/^\s*[-*]\s+(.+)$/gim, '<li style="margin-left: 20px; margin-bottom: 8px; list-style-type: disc;">$1</li>');
+      html = html.replace(/(<li[^>]*>.*<\/li>)/s, '<ul style="margin: 15px 0; padding-left: 20px;">$1</ul>');
+
+      // Ordered lists
+      html = html.replace(/^\s*\d+\.\s+(.+)$/gim, '<li style="margin-left: 20px; margin-bottom: 8px;">$1</li>');
+
+      // Blockquotes
+      html = html.replace(/^>\s*(.+)$/gim, '<blockquote style="border-left: 4px solid #ffc107; padding-left: 15px; margin: 15px 0; color: #666; font-style: italic;">$1</blockquote>');
+
+      // Horizontal rule
+      html = html.replace(/^---$/gim, '<hr style="border: none; border-top: 2px solid #e0e0e0; margin: 30px 0;">');
+
+      // Line breaks
+      html = html.replace(/\n\n/g, '<br><br>');
+      html = html.replace(/\n/g, '<br>');
+
+      return html;
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeDocumentation();
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('documentationModal')?.addEventListener('click', function(event) {
+      if (event.target === this) {
+        closeDocumentation();
+      }
+    });
+  </script>
 
 </body>
 </html>

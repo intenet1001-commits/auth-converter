@@ -71,7 +71,9 @@ The app uses Electron's multi-process model:
 - `/api/extension-to-mcp` - Convert extension manifest to MCP config format
 - `/api/check-auth-status` - Check Google OAuth status for workspace servers
 - `/api/start-auth` - Initiate OAuth flow
-- `/api/save-client-secret` - Save OAuth client_secret.json files
+- `/api/save-client-secret` - Save OAuth client_secret.json files with auto port detection
+- `/api/detect-port-from-extension` - Auto-detect OAuth port from client_secret.json
+- `/api/get-oauth-port` - Get OAuth port for specific account
 - `/oauth2callback` - OAuth callback endpoint
 
 ### Configuration File Locations
@@ -171,3 +173,31 @@ app.post('/api/endpoint-name', async (req, res) => {
 - Verify client_id in oauth_port_map.json matches client_secret.json
 - Token format: workspace MCP uses `token` field, standard OAuth uses `access_token`
 - Check both token locations: `.mcp-workspace` and `.google_workspace_mcp/credentials`
+
+## Recent Updates (2025-11-12)
+
+### OAuth UI/UX Improvements
+1. **Browser Authentication Guidance**
+   - Added warning messages explaining OAuth must happen in browser (not Electron app)
+   - External link dialog now shows detailed OAuth flow explanation
+   - Authentication status area shows helpful prompts when auth is needed
+
+2. **Environment Variable Management**
+   - Replaced `prompt()` with modern modal dialog for adding environment variables
+   - Support for simultaneous key+value input with placeholders
+   - Visual feedback on successful port detection
+
+3. **Auto Port Detection Feature**
+   - "🔍 포트 자동 감지" button automatically extracts port from client_secret.json
+   - `/api/detect-port-from-extension` endpoint analyzes redirect_uris
+   - Auto-adds WORKSPACE_MCP_PORT to .claude.json when saving client_secret
+
+4. **Port Detection Bug Fixes**
+   - Fixed email-specific client_secret matching (prioritizes accountId-specific directories)
+   - Server now correctly maps intenet1→8766, intenet8821→8765
+   - Eliminated false port mismatch warnings
+
+5. **Desktop App OAuth Support**
+   - Added support for "installed" (Desktop App) type OAuth clients
+   - Handles dynamic ports with `http://localhost` redirect_uris
+   - Works alongside "web" type OAuth clients
