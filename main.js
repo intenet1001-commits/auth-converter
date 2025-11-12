@@ -345,6 +345,27 @@ ipcMain.handle('open-external', async (event, url) => {
 // 빌드 IPC 핸들러
 ipcMain.handle('build-app', async (event) => {
   return new Promise((resolve) => {
+    // Check if running in development mode
+    const isDev = !app.isPackaged;
+
+    if (!isDev) {
+      resolve({
+        success: false,
+        message: '빌드 기능은 개발 모드(npm start)에서만 사용할 수 있습니다. DMG로 설치된 앱에서는 사용할 수 없습니다.'
+      });
+      return;
+    }
+
+    // Verify that we're in the source directory
+    const packageJsonPath = path.join(__dirname, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      resolve({
+        success: false,
+        message: '소스 코드 디렉토리를 찾을 수 없습니다. 개발 모드로 실행해주세요.'
+      });
+      return;
+    }
+
     const buildProcess = exec('npm run build:mac', {
       cwd: __dirname,
       maxBuffer: 1024 * 1024 * 10 // 10MB buffer
