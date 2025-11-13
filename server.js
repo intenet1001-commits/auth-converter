@@ -1816,6 +1816,109 @@ app.get('/api/docs/:filename', (req, res) => {
   }
 });
 
+// Initialize OAuth port mapping on startup
+function initializeOAuthPortMapping() {
+  console.log('\n🔧 Initializing OAuth port mapping...');
+
+  const homeDir = os.homedir();
+  const portMapPath = path.join(homeDir, '.mcp-workspace', 'oauth_port_map.json');
+  const workspaceMcpDir = findGoogleWorkspaceMcpDir();
+
+  if (!workspaceMcpDir) {
+    console.log('⚠️  No google_workspace_mcp directory found, skipping OAuth port mapping initialization');
+    return;
+  }
+
+  try {
+    // Load existing port map or create empty one
+    let portMap = {};
+    if (fs.existsSync(portMapPath)) {
+      portMap = JSON.parse(fs.readFileSync(portMapPath, 'utf8'));
+      console.log(`📖 Loaded existing port map with ${Object.keys(portMap).length} entries`);
+    }
+
+    // Available ports to assign
+    const availablePorts = [8766, 8765, 8675, 8776, 8777, 8778];
+    const usedPorts = new Set(Object.values(portMap));
+
+    // Scan all client_secret directories
+    const clientSecretDirs = fs.readdirSync(workspaceMcpDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory() && dirent.name.includes('client_secret'))
+      .sort(); // Sort for consistent ordering
+
+    let updated = false;
+
+    for (const dir of clientSecretDirs) {
+      const secretPath = path.join(workspaceMcpDir, dir.name, 'client_secret.json');
+
+      if (!fs.existsSync(secretPath)) {
+        continue;
+      }
+
+      try {
+        const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+        const clientConfig = clientSecret.installed || clientSecret.web;
+        const clientId = clientConfig.client_id;
+
+        // If this client_id already has a port, skip
+        if (portMap[clientId]) {
+          console.log(`✓ ${dir.name}: already mapped to port ${portMap[clientId]}`);
+          continue;
+        }
+
+        // Try to extract port from redirect_uris first
+        let assignedPort = null;
+        if (clientConfig.redirect_uris && clientConfig.redirect_uris.length > 0) {
+          const redirectUri = clientConfig.redirect_uris[0];
+          const portMatch = redirectUri.match(/:(\d+)\//);
+          if (portMatch) {
+            assignedPort = parseInt(portMatch[1]);
+            console.log(`✓ ${dir.name}: extracted port ${assignedPort} from redirect_uri`);
+          }
+        }
+
+        // If no port in redirect_uri, assign next available port
+        if (!assignedPort) {
+          assignedPort = availablePorts.find(port => !usedPorts.has(port));
+          if (assignedPort) {
+            console.log(`✓ ${dir.name}: assigned new port ${assignedPort}`);
+          } else {
+            console.log(`⚠️  ${dir.name}: no available ports to assign`);
+            continue;
+          }
+        }
+
+        // Add to port map
+        portMap[clientId] = assignedPort;
+        usedPorts.add(assignedPort);
+        updated = true;
+
+      } catch (err) {
+        console.error(`❌ Error reading ${secretPath}:`, err.message);
+      }
+    }
+
+    // Save updated port map if changes were made
+    if (updated) {
+      const portMapDir = path.dirname(portMapPath);
+      if (!fs.existsSync(portMapDir)) {
+        fs.mkdirSync(portMapDir, { recursive: true });
+      }
+      fs.writeFileSync(portMapPath, JSON.stringify(portMap, null, 2));
+      console.log(`✅ Port map saved to ${portMapPath}`);
+      console.log(`📊 Total mappings: ${Object.keys(portMap).length}`);
+    } else {
+      console.log('✅ Port map is up to date');
+    }
+
+  } catch (err) {
+    console.error('❌ Error initializing OAuth port mapping:', err);
+  }
+}
+
+// Initialize port mapping before starting server
+initializeOAuthPortMapping();
+
 app.listen(PORT, () => {
   const isElectron = process.env.ELECTRON_MODE === 'true';
 
