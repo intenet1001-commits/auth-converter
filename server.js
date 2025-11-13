@@ -37,6 +37,77 @@ const upload = multer({
   }
 });
 
+// Helper function to find google_workspace_mcp directory dynamically
+function findGoogleWorkspaceMcpDir() {
+  const homeDir = os.homedir();
+  const possiblePaths = [
+    path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp'),
+    path.join(homeDir, 'Documents', 'github', 'myproduct_v4', 'google_workspace_mcp'),
+    path.join(homeDir, 'Documents', 'myproduct_v4', 'google_workspace_mcp'),
+    path.join(homeDir, 'google_workspace_mcp'),
+    path.join(homeDir, '.google_workspace_mcp'),
+  ];
+
+  for (const dirPath of possiblePaths) {
+    if (fs.existsSync(dirPath)) {
+      console.log(`✓ Found google_workspace_mcp at: ${dirPath}`);
+      return dirPath;
+    }
+  }
+
+  console.log('⚠️ google_workspace_mcp directory not found in common locations');
+  return null;
+}
+
+// Helper function to find client_secret.json for a given account ID
+function findClientSecretForAccount(accountId, baseDir) {
+  if (!baseDir || !fs.existsSync(baseDir)) {
+    console.log(`Base directory not found: ${baseDir}`);
+    return null;
+  }
+
+  try {
+    const dirs = fs.readdirSync(baseDir, { withFileTypes: true })
+      .filter(dirent => dirent.isDirectory());
+
+    // Try exact match patterns first
+    const exactPatterns = [
+      `client_secret_${accountId}`,
+      `client_secret-${accountId}`,
+      `${accountId}_client_secret`,
+      `${accountId}-client_secret`
+    ];
+
+    for (const pattern of exactPatterns) {
+      const dir = dirs.find(d => d.name === pattern);
+      if (dir) {
+        const secretPath = path.join(baseDir, dir.name, 'client_secret.json');
+        if (fs.existsSync(secretPath)) {
+          console.log(`✓ Found exact match client_secret at: ${secretPath}`);
+          return secretPath;
+        }
+      }
+    }
+
+    // Try partial match (contains accountId)
+    for (const dir of dirs) {
+      if (dir.name.includes(accountId) && dir.name.includes('client_secret')) {
+        const secretPath = path.join(baseDir, dir.name, 'client_secret.json');
+        if (fs.existsSync(secretPath)) {
+          console.log(`✓ Found partial match client_secret at: ${secretPath}`);
+          return secretPath;
+        }
+      }
+    }
+
+    console.log(`❌ No client_secret found for account: ${accountId}`);
+    return null;
+  } catch (err) {
+    console.error(`Error scanning directory ${baseDir}:`, err);
+    return null;
+  }
+}
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -297,32 +368,31 @@ app.post('/api/extension-to-mcp', (req, res) => {
 
             if (userEmail) {
               // Look for client_secret.json for this email to get client_id
-              const clientSecretDirs = fs.readdirSync(
-                path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp'),
-                { withFileTypes: true }
-              ).filter(dirent => dirent.isDirectory() && dirent.name.startsWith('client_secret_'));
+              const workspaceMcpDir = findGoogleWorkspaceMcpDir();
 
-              for (const dir of clientSecretDirs) {
-                const secretPath = path.join(
-                  homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
-                  dir.name, 'client_secret.json'
-                );
+              if (workspaceMcpDir && fs.existsSync(workspaceMcpDir)) {
+                const clientSecretDirs = fs.readdirSync(workspaceMcpDir, { withFileTypes: true })
+                  .filter(dirent => dirent.isDirectory() && dirent.name.includes('client_secret'));
 
-                if (fs.existsSync(secretPath)) {
-                  const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
-                  const clientConfig = clientSecret.installed || clientSecret.web;
-                  const clientId = clientConfig.client_id;
+                for (const dir of clientSecretDirs) {
+                  const secretPath = path.join(workspaceMcpDir, dir.name, 'client_secret.json');
 
-                  if (portMap[clientId]) {
-                    detectedPort = portMap[clientId];
-                    portSource = 'oauth_port_map';
-                    console.log(`Auto-detected OAuth port ${detectedPort} for ${userEmail} from port map`);
+                  if (fs.existsSync(secretPath)) {
+                    const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+                    const clientConfig = clientSecret.installed || clientSecret.web;
+                    const clientId = clientConfig.client_id;
 
-                    // Add WORKSPACE_MCP_PORT to env
-                    env.WORKSPACE_MCP_PORT = String(detectedPort);
-                    env.WORKSPACE_MCP_BASE_URI = env.WORKSPACE_MCP_BASE_URI || 'http://localhost';
-                    env.OAUTHLIB_INSECURE_TRANSPORT = env.OAUTHLIB_INSECURE_TRANSPORT || 'true';
-                    break;
+                    if (portMap[clientId]) {
+                      detectedPort = portMap[clientId];
+                      portSource = 'oauth_port_map';
+                      console.log(`Auto-detected OAuth port ${detectedPort} for ${userEmail} from port map`);
+
+                      // Add WORKSPACE_MCP_PORT to env
+                      env.WORKSPACE_MCP_PORT = String(detectedPort);
+                      env.WORKSPACE_MCP_BASE_URI = env.WORKSPACE_MCP_BASE_URI || 'http://localhost';
+                      env.OAUTHLIB_INSECURE_TRANSPORT = env.OAUTHLIB_INSECURE_TRANSPORT || 'true';
+                      break;
+                    }
                   }
                 }
               }
@@ -419,7 +489,14 @@ app.post('/api/save-client-secret', (req, res) => {
 
     // Create directory for client secrets
     const homeDir = os.homedir();
-    const baseDir = path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp');
+    let baseDir = findGoogleWorkspaceMcpDir();
+
+    // If not found, create in default location
+    if (!baseDir) {
+      baseDir = path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp');
+      console.log(`Creating new google_workspace_mcp directory at: ${baseDir}`);
+    }
+
     const secretDir = path.join(baseDir, `client_secret_${accountId}`);
 
     if (!fs.existsSync(secretDir)) {
@@ -511,24 +588,27 @@ app.post('/api/detect-port-from-extension', (req, res) => {
     // Try to find client_secret.json from various possible locations
     const homeDir = os.homedir();
     const possiblePaths = [];
+    const workspaceMcpDir = findGoogleWorkspaceMcpDir();
+
+    if (!workspaceMcpDir) {
+      console.log('⚠️ google_workspace_mcp directory not found');
+    }
 
     // 1. From server name (extract account identifier)
-    if (serverName) {
+    if (serverName && workspaceMcpDir) {
       const match = serverName.match(/workspace-mcp-(.+?)(?:-v\d+)?$/);
       if (match) {
         const accountId = match[1];
-        possiblePaths.push(
-          path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${accountId}`, 'client_secret.json')
-        );
+        const foundPath = findClientSecretForAccount(accountId, workspaceMcpDir);
+        if (foundPath) possiblePaths.push(foundPath);
       }
     }
 
     // 2. From email
-    if (email) {
+    if (email && workspaceMcpDir) {
       const accountId = email.split('@')[0];
-      possiblePaths.push(
-        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${accountId}`, 'client_secret.json')
-      );
+      const foundPath = findClientSecretForAccount(accountId, workspaceMcpDir);
+      if (foundPath) possiblePaths.push(foundPath);
     }
 
     // 3. Try to find from .claude.json GOOGLE_CLIENT_SECRET_PATH
@@ -763,15 +843,20 @@ app.post('/api/check-auth-status', async (req, res) => {
             const accountId = email.split('@')[0];
             console.log(`Server: Looking for client_secret for account: ${accountId}`);
 
-            // Try the specific client_secret directory for this account
-            const specificSecretPath = path.join(
-              homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
-              `client_secret_${accountId}`, 'client_secret.json'
-            );
+            // Find google_workspace_mcp directory dynamically
+            const workspaceMcpDir = findGoogleWorkspaceMcpDir();
+
+            if (!workspaceMcpDir) {
+              console.log('⚠️ google_workspace_mcp directory not found, skipping port detection');
+              continue;
+            }
+
+            // Use helper function to find client_secret for this account
+            const specificSecretPath = findClientSecretForAccount(accountId, workspaceMcpDir);
 
             let foundPort = false;
 
-            if (fs.existsSync(specificSecretPath)) {
+            if (specificSecretPath) {
               try {
                 console.log(`Server: Reading client_secret from ${specificSecretPath}`);
                 const clientSecret = JSON.parse(fs.readFileSync(specificSecretPath, 'utf8'));
@@ -800,41 +885,40 @@ app.post('/api/check-auth-status', async (req, res) => {
               }
             }
 
-            // If not found, fall back to scanning all directories (old behavior)
+            // If not found, fall back to scanning all directories
             if (!foundPort) {
-              console.log(`Server: Specific client_secret not found, scanning all directories...`);
-              const clientSecretDirs = fs.readdirSync(
-                path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp'),
-                { withFileTypes: true }
-              ).filter(dirent => dirent.isDirectory() && dirent.name.startsWith('client_secret_'));
+              console.log(`Server: Scanning all client_secret directories...`);
+              try {
+                const clientSecretDirs = fs.readdirSync(workspaceMcpDir, { withFileTypes: true })
+                  .filter(dirent => dirent.isDirectory() && dirent.name.includes('client_secret'));
 
-              for (const dir of clientSecretDirs) {
-                const secretPath = path.join(
-                  homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp',
-                  dir.name, 'client_secret.json'
-                );
+                for (const dir of clientSecretDirs) {
+                  const secretPath = path.join(workspaceMcpDir, dir.name, 'client_secret.json');
 
-                if (fs.existsSync(secretPath)) {
-                  const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
-                  const clientConfig = clientSecret.installed || clientSecret.web;
-                  const clientId = clientConfig.client_id;
+                  if (fs.existsSync(secretPath)) {
+                    const clientSecret = JSON.parse(fs.readFileSync(secretPath, 'utf8'));
+                    const clientConfig = clientSecret.installed || clientSecret.web;
+                    const clientId = clientConfig.client_id;
 
-                  if (portMap[clientId]) {
-                    authStatus[serverName].detectedPort = portMap[clientId];
-                    console.log(`Detected OAuth port ${portMap[clientId]} for ${email} from ${dir.name}`);
+                    if (portMap[clientId]) {
+                      authStatus[serverName].detectedPort = portMap[clientId];
+                      console.log(`Detected OAuth port ${portMap[clientId]} for ${email} from ${dir.name}`);
 
-                    // Check for port mismatch
-                    if (configuredPort && parseInt(configuredPort) !== portMap[clientId]) {
-                      authStatus[serverName].portMismatch = true;
-                      authStatus[serverName].portMismatchWarning = `Configured port ${configuredPort} doesn't match client_secret port ${portMap[clientId]}`;
-                      console.log(`⚠️ Port mismatch detected for ${serverName}`);
-                    } else if (!configuredPort) {
-                      authStatus[serverName].needsPortConfig = true;
-                      console.log(`⚠️ WORKSPACE_MCP_PORT not configured for ${serverName}`);
+                      // Check for port mismatch
+                      if (configuredPort && parseInt(configuredPort) !== portMap[clientId]) {
+                        authStatus[serverName].portMismatch = true;
+                        authStatus[serverName].portMismatchWarning = `Configured port ${configuredPort} doesn't match client_secret port ${portMap[clientId]}`;
+                        console.log(`⚠️ Port mismatch detected for ${serverName}`);
+                      } else if (!configuredPort) {
+                        authStatus[serverName].needsPortConfig = true;
+                        console.log(`⚠️ WORKSPACE_MCP_PORT not configured for ${serverName}`);
+                      }
+                      break;
                     }
-                    break;
                   }
                 }
+              } catch (err) {
+                console.error(`Error scanning ${workspaceMcpDir}:`, err);
               }
             }
           }
@@ -974,25 +1058,32 @@ app.post('/api/start-auth', (req, res) => {
 
     // Find appropriate client_secret.json based on email
     const homeDir = os.homedir();
+    const accountId = email.split('@')[0];
 
-    // Try multiple locations for client_secret.json
-    const possiblePaths = [
-      // Email-specific paths (PRIORITY 1: correct format)
-      path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${email.split('@')[0]}`, 'client_secret.json'),
-      // Fallback paths
-      path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
-      // Default path
-      path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
-      // Also check .google_workspace_mcp
-      path.join(homeDir, '.google_workspace_mcp', 'client_secret.json')
-    ];
-
+    // Try to find using helper function first
+    const workspaceMcpDir = findGoogleWorkspaceMcpDir();
     let secretPath = null;
-    for (const tryPath of possiblePaths) {
-      if (fs.existsSync(tryPath)) {
-        secretPath = tryPath;
+
+    if (workspaceMcpDir) {
+      secretPath = findClientSecretForAccount(accountId, workspaceMcpDir);
+      if (secretPath) {
         console.log(`Found client_secret for ${email} at: ${secretPath}`);
-        break;
+      }
+    }
+
+    // Fallback: try default locations
+    if (!secretPath) {
+      const fallbackPaths = [
+        path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
+        path.join(homeDir, '.google_workspace_mcp', 'client_secret.json')
+      ];
+
+      for (const tryPath of fallbackPaths) {
+        if (fs.existsSync(tryPath)) {
+          secretPath = tryPath;
+          console.log(`Found client_secret for ${email} at fallback: ${secretPath}`);
+          break;
+        }
       }
     }
 
@@ -1379,23 +1470,30 @@ app.get('/oauth2callback', async (req, res) => {
       console.log(`Using client credentials from existing token file for ${email}`);
     } else {
       // Find appropriate client_secret.json based on email
-      const possiblePaths = [
-        // Email-specific paths (PRIORITY 1: correct format)
-        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_${email.split('@')[0]}`, 'client_secret.json'),
-        // Fallback paths
-        path.join(homeDir, 'Documents', 'GitHub', 'myproduct_v4', 'google_workspace_mcp', `client_secret_workspace-${email.split('@')[0]}`, 'client_secret.json'),
-        // Default path
-        path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
-        // Also check .google_workspace_mcp
-        path.join(homeDir, '.google_workspace_mcp', 'client_secret.json')
-      ];
-
+      const accountId = email.split('@')[0];
+      const workspaceMcpDir = findGoogleWorkspaceMcpDir();
       let secretPath = null;
-      for (const tryPath of possiblePaths) {
-        if (fs.existsSync(tryPath)) {
-          secretPath = tryPath;
+
+      if (workspaceMcpDir) {
+        secretPath = findClientSecretForAccount(accountId, workspaceMcpDir);
+        if (secretPath) {
           console.log(`Found client_secret for ${email} at: ${secretPath}`);
-          break;
+        }
+      }
+
+      // Fallback: try default locations
+      if (!secretPath) {
+        const fallbackPaths = [
+          path.join(homeDir, '.mcp-workspace', 'client_secret.json'),
+          path.join(homeDir, '.google_workspace_mcp', 'client_secret.json')
+        ];
+
+        for (const tryPath of fallbackPaths) {
+          if (fs.existsSync(tryPath)) {
+            secretPath = tryPath;
+            console.log(`Found client_secret for ${email} at fallback: ${secretPath}`);
+            break;
+          }
         }
       }
 
